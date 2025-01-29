@@ -1,0 +1,15 @@
+.{
+    .name = "sqlc-gen-zig-e2e",
+    .version = "0.0.0",
+    .dependencies = .{
+        .pg = .{
+            .url = "git+https://github.com/karlseguin/pg.zig?ref=master#4ddae09948cb1563b394cd724b95de14cc88fc12",
+            .hash = "1220779868e6a2f387addec799f176342f5d9a0277139cdb51336e0c1c1b904fcffa",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

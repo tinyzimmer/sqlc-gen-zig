@@ -1,0 +1,15 @@
+version: '2'
+plugins:
+- name: zig
+  wasm:
+    url: file://{{PLUGIN_PATH}}
+    sha256: {{PLUGIN_SHA256}}
+sql:
+- schema: schema/schema.sql
+  queries: schema/queries.sql
+  engine: postgresql
+  codegen:
+  - out: src/gen
+    plugin: zig
+    options:
+      # public_query_strings: true

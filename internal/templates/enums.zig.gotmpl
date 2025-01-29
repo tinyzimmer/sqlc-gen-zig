@@ -1,0 +1,11 @@
+// Generated with sqlc {{ .SQLCVersion }}
+{{ range $enum := .Enums }}
+{{- if $enum.Comment }}
+// {{ $enum.Comment }}
+{{- end }}
+pub const {{ $enum.ZigName }} = enum {
+{{- range $value := $enum.Values }}
+    @"{{ $value }}",
+{{- end }}
+};
+{{ end }}

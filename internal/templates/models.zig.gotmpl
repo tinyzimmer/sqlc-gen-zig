@@ -1,0 +1,58 @@
+// Generated with sqlc {{ .SQLCVersion }}
+
+const std = @import("std");
+const Allocator = std.mem.Allocator;
+
+{{ if hasPgTypes .Models -}}
+const pg = @import("{{ .PGImportName }}");
+{{ end }}
+{{ if hasEnums .Models -}}
+const enums = @import("{{ .EnumsFile }}");
+{{ end -}}
+
+{{ range $model := .Models }}
+{{- if $model.Comment }}
+// {{ $model.Comment }}
+{{- end }}
+pub const {{ $model.StructName }} = struct {
+    {{- if hasNonScalarFields $model }}
+    __allocator: Allocator,
+    {{- "\n" -}}
+    {{- end }}
+    {{- range $field := $model.Fields }}
+    {{- if $field.Comment }}
+    // {{ $field.Comment }}
+    {{- end }}
+    {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }},
+    {{- end }}
+
+    {{- if hasNonScalarFields $model }}
+    {{- "\n" }}
+    pub fn deinit(self: *const {{ $model.StructName }}) void {
+        {{- range $field := $model.Fields }}
+        {{- if isNonScalar $field }}
+        {{- if $field.Nullable }}
+        if (self.{{ $field.Name }}) |field| {
+            {{- if eq $field.ZigType "pg.Cidr" }}
+            self.__allocator.free(field.address);
+            {{- else if eq $field.ZigType "pg.Numeric" }}
+            self.__allocator.free(field.digits);
+            {{- else }}
+            self.__allocator.free(field);
+            {{- end }}
+        }
+        {{- else }}
+        {{- if eq $field.ZigType "pg.Cidr" }}
+        self.__allocator.free(self.{{ $field.Name }}.address);
+        {{- else if eq $field.ZigType "pg.Numeric" }}
+        self.__allocator.free(self.{{ $field.Name }}.digits);
+        {{- else }}
+        self.__allocator.free(self.{{ $field.Name }});
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    }
+    {{- end }}
+};
+{{ end }}
