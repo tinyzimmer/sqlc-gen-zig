@@ -1,4 +1,4 @@
 **/sqlc.yaml
-**/gen/
+# **/gen/
 **/zig-out/
 **/.zig-cache/
