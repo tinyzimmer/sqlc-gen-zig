@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+project_name: sqlc-gen-zig
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: plugin
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - wasip1
+    goarch:
+      - wasm
+
+
+archives:
+  - id: dist
+    builds:
+      - plugin
+    formats: binary
+    name_template: "{{ .ProjectName }}"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  github:
+    owner: tinyzimmer
+    name: sqlc-gen-zig
