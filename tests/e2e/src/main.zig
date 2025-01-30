@@ -42,6 +42,7 @@ test "generated one queries" {
         .password = "password",
         .role = .admin,
         .ip_address = "127.0.0.1",
+        .salary = 1000.50,
     });
 
     const user = try querier.getUser(1);
@@ -55,6 +56,7 @@ test "generated one queries" {
     try expectEqualStrings("password", user.password);
     try expectEqual(.admin, user.role);
     try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
+    try expectEqual(1000.50, user.salary.?.toFloat());
 }
 
 test "generated many queries" {

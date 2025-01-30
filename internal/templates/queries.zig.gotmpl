@@ -37,7 +37,7 @@ pub fn Querier(comptime T: type) type {
         {{- if $arg.Struct }}
         pub const {{ $arg.Struct.StructName }} = struct {
             {{- range $field := $arg.Struct.Fields }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }},
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
             {{- end }}
         };
         {{- "\n" -}}

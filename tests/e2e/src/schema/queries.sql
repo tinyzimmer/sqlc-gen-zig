@@ -13,8 +13,9 @@ INSERT INTO "user" (
     password, 
     role, 
     ip_address,
+    salary,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, NOW(), NOW()
+    $1, $2, $3, $4, $5, $6, NOW(), NOW()
 );

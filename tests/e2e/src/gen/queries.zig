@@ -29,10 +29,11 @@ pub fn Querier(comptime T: type) type {
             \\    password, 
             \\    role, 
             \\    ip_address,
+            \\    salary,
             \\    created_at,
             \\    updated_at
             \\) VALUES (
-            \\    $1, $2, $3, $4, $5, NOW(), NOW()
+            \\    $1, $2, $3, $4, $5, $6, NOW(), NOW()
             \\)
         ;
 
@@ -41,7 +42,8 @@ pub fn Querier(comptime T: type) type {
             email: []const u8,
             password: []const u8,
             role: enums.UserRole,
-            ip_address: ?[]const u8,
+            ip_address: ?[]const u8 = null,
+            salary: ?f64 = null,
         };
 
         pub fn createUser(self: Self, create_user_params: CreateUserParams) !void {
@@ -50,7 +52,8 @@ pub fn Querier(comptime T: type) type {
                 create_user_params.email,
                 create_user_params.password,
                 @tagName(create_user_params.role),
-                create_user_params.ip_address, 
+                create_user_params.ip_address,
+                create_user_params.salary, 
             });
         }
 

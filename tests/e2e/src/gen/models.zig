@@ -15,12 +15,12 @@ pub const User = struct {
     email: []const u8,
     password: []const u8,
     role: enums.UserRole,
-    ip_address: ?pg.Cidr,
-    salary: ?pg.Numeric,
-    notes: ?[]const u8,
+    ip_address: ?pg.Cidr = null,
+    salary: ?pg.Numeric = null,
+    notes: ?[]const u8 = null,
     created_at: i64,
     updated_at: i64,
-    archived_at: ?i64,
+    archived_at: ?i64 = null,
 
     pub fn deinit(self: *const User) void {
         self.__allocator.free(self.name);

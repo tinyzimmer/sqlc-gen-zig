@@ -9,10 +9,12 @@ PLUGIN_FILE := $(CURDIR)/bin/sqlc-gen-zig.wasm
 build:
 	GOOS=wasip1 GOARCH=wasm $(GO) build -o "$(PLUGIN_FILE)" .
 
-e2e: build patch-sqlc-yaml
+gen-e2e: build patch-sqlc-yaml
+	cd tests/e2e && $(SQLC) generate
+
+e2e: gen-e2e
 	cd tests/e2e && docker compose up -d
 	sleep 5
-	cd tests/e2e && $(SQLC) generate
 	cd tests/e2e && $(ZIG) build test
 	cd tests/e2e && docker compose down -v
 
