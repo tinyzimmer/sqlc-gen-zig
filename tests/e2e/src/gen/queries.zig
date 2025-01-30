@@ -22,7 +22,7 @@ pub fn Querier(comptime T: type) type {
             return .{ .allocator = allocator, .conn = conn };
         }
         
-        const create_user_sql = 
+        pub const create_user_sql = 
             \\INSERT INTO "user" (
             \\    name, 
             \\    email, 
@@ -54,7 +54,7 @@ pub fn Querier(comptime T: type) type {
             });
         }
 
-        const get_user_sql = 
+        pub const get_user_sql = 
             \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
             \\WHERE id = $1 LIMIT 1
         ;

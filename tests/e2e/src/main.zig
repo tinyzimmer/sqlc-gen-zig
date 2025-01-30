@@ -1,8 +1,12 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
+const DefaultPrng = std.Random.DefaultPrng;
 
 const pg = @import("pg");
 
 const queries = @import("gen/queries.zig");
+
+const schema = @embedFile("schema/schema.sql");
 
 test "generated code" {
     const expect = std.testing.expect;
@@ -13,20 +17,23 @@ test "generated code" {
 
     const allocator = std.testing.allocator;
 
-    var pool = try pg.Pool.init(allocator, .{ .size = 5, .connect = .{
+    const test_db = try newTestDB(allocator);
+    defer allocator.free(test_db);
+    var pool = try pg.Pool.init(allocator, .{ .size = 1, .connect = .{
         .port = 5432,
         .host = "127.0.0.1",
     }, .auth = .{
         .username = "postgres",
-        .database = "postgres",
         .password = "postgres",
+        .database = test_db,
         .timeout = 10_000,
     } });
     defer pool.deinit();
+    _ = try pool.exec(schema, .{});
 
     const querier = queries.PoolQuerier.init(allocator, pool);
 
-    try expectError(error.NotFound, querier.getUser(999));
+    try expectError(error.NotFound, querier.getUser(1));
 
     try querier.createUser(.{
         .name = "test",
@@ -47,4 +54,32 @@ test "generated code" {
     try expectEqualStrings("password", user.password);
     try expectEqual(.admin, user.role);
     try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
+}
+
+fn newTestDB(allocator: Allocator) ![]const u8 {
+    var prng = DefaultPrng.init(@as(u64, @bitCast(std.time.milliTimestamp())));
+    var rand = prng.random();
+
+    var pool = try pg.Pool.init(allocator, .{ .size = 1, .connect = .{
+        .port = 5432,
+        .host = "127.0.0.1",
+    }, .auth = .{
+        .username = "postgres",
+        .password = "postgres",
+        .database = "postgres",
+        .timeout = 10_000,
+    } });
+    defer pool.deinit();
+
+    var db_name: [16:0]u8 = undefined;
+    const chars = "abcdefghijklmnopqrstuvwxyz";
+    for (0..16) |idx| {
+        db_name[idx] = chars[rand.intRangeLessThan(usize, 0, chars.len)];
+    }
+
+    const query = try std.fmt.allocPrint(allocator, "CREATE DATABASE {s}", .{db_name[0..]});
+    defer allocator.free(query);
+    _ = try pool.exec(query, .{});
+
+    return try allocator.dupe(u8, db_name[0..]);
 }
