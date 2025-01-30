@@ -37,3 +37,16 @@ release:
   github:
     owner: tinyzimmer
     name: sqlc-gen-zig
+  header: |
+    ## sqlc-gen-zig ({{ .Date }})
+
+    To update to this version, update your sqlc configuration like below:
+
+    ```yaml
+    version: '2'
+    plugins:
+    - name: zig
+      wasm:
+        url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/{{ .Tag }}/sqlc-gen-zig.wasm
+        sha256: {{ .Checksums }}
+    ```
