@@ -1,74 +1,4 @@
 {{- $conf := .Config -}}
-
-{{- define "scanRow" -}}
-{{- if .Ret.Struct }}
-{{- range $idx, $field := .Ret.Struct.Fields }}
-{{- if isEnum $field }}
-const row_{{ $field.Name }} = std.meta.stringToEnum({{ $field.ZigType }}, row.get([]const u8, {{ $idx }})){{ if not $field.Nullable }} orelse unreachable{{ end }};
-{{- else if eq $field.ZigType "pg.Cidr" }}
-const {{ $field.Name }}_cidr = row.get({{ if $field.Nullable }}?{{ end }}pg.Cidr, {{ $idx }});
-{{- if $field.Nullable }}
-const row_{{ $field.Name }}: ?pg.Cidr = blk: {
-    if ({{ $field.Name }}_cidr) |cidr| {
-        break :blk pg.Cidr{
-            .address = try self.allocator.dupe(u8, cidr.address),
-            .netmask = cidr.netmask,
-            .family = cidr.family,
-        };
-    }
-    break :blk null;
-};
-{{- else }}
-const row_{{ $field.Name }} = pg.Cidr{
-    .address = try self.allocator.dupe(u8, {{ $field.Name }}_cidr.address),
-    .netmask = {{ $field.Name }}_cidr.netmask,
-    .family = {{ $field.Name }}_cidr.family,
-};
-{{- end }}
-{{- else if eq $field.ZigType "pg.Numeric" }}
-const {{ $field.Name }}_numeric = row.get({{ if $field.Nullable }}?{{ end }}pg.Numeric, {{ $idx }});
-{{- if $field.Nullable }}
-const row_{{ $field.Name }}: ?pg.Numeric = blk: {
-    if ({{ $field.Name }}_numeric) |numeric| {
-        break :blk pg.Numeric{
-            .number_of_digits = numeric.number_of_digits,
-            .weight = numeric.weight,
-            .sign = numeric.sign,
-            .scale = numeric.scale,
-            .digits = try self.allocator.dupe(u8, numeric.digits),
-        };
-    }
-    break :blk null;
-};
-{{- else }}
-const row_{{ $field.Name }} = pg.Numeric{
-    .number_of_digits = numeric.number_of_digits,
-    .weight = numeric.weight,
-    .sign = numeric.sign,
-    .scale = numeric.scale,
-    .digits = try self.allocator.dupe(u8, numeric.digits),
-};
-{{- end }}
-{{- else if isNonScalar $field }}
-{{- if $field.Nullable }}
-const maybe_{{ $field.Name }} = row.get(?{{ $field.ZigType }}, {{ $idx }});
-const row_{{ $field.Name }}: ?{{ $field.ZigType }} = blk: {
-    if (maybe_{{ $field.Name }}) |field| {
-        break :blk try self.allocator.dupe({{ allocType $field }}, field);
-    }
-    break :blk null;
-};
-{{- else }}
-const row_{{ $field.Name }} = try self.allocator.dupe({{ allocType $field }}, row.get({{ fieldScanType $field }}, {{ $idx }}));
-{{- end }}
-{{- else }}
-const row_{{ $field.Name }} = row.get({{ fieldScanType $field }}, {{ $idx }});
-{{- end }}
-{{- end }}
-{{- else }}
-{{- end -}}
-{{- end -}}
-
 // Generated with sqlc {{ .SQLCVersion }}
 
 const std = @import("std");
@@ -116,43 +46,24 @@ pub fn Querier(comptime T: type) type {
         {{- end }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
             {{- if isExecQuery $query }}
-            _ = try self.conn.exec({{ $query.ConstantName }}, .{ 
+            _ = try self.conn.exec({{ $query.ConstantName }}, .{ {{- if not $query.Args -}} });{{- else }}
                 {{ queryExecParams $query 16 }} 
             });
+            {{- end -}}
             {{- else }}
-            const result = try self.conn.query({{ $query.ConstantName }}, .{ 
+            const result = try self.conn.query({{ $query.ConstantName }}, .{ {{- if not $query.Args -}} });{{- else }}
                 {{ queryExecParams $query 16 }} 
             });
+            {{- end  }}
             defer result.deinit();
             {{- end -}}
 
             {{- if isManyQuery $query }}
             {{- "\n" }}
-            var out = std.ArrayList.init({{ queryReturnType $query }});
-            defer out.deinit();
-            // TODO
-            return out.toOwnedSlice();
-
+            {{- include "scanManyQuery" $query | indent 12 }}
             {{- else if isOneQuery $query }}
             {{- "\n" }}
-            const row = try result.next() orelse return error.NotFound;
-            {{- "\n" }}
-            
-            {{- include "scanRow" $query | indent 12 }}
-
-            {{- if $query.Ret.Struct }}
-            {{- "\n" }}
-            return .{
-                {{- if hasNonScalarFields $query.Ret.Struct }}
-                .__allocator = self.allocator,
-                {{- end }}
-                {{- range $idx, $field := .Ret.Struct.Fields }}
-                .{{ $field.Name }} = row_{{ $field.Name }},
-                {{- end }}
-            };
-            {{- else }}
-            {{- end }}
-
+            {{- include "scanOneQuery" $query | indent 12 }}
             {{- else if isExecQuery $query }}
             {{- end }}
         }

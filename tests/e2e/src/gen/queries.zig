@@ -45,7 +45,7 @@ pub fn Querier(comptime T: type) type {
         };
 
         pub fn createUser(self: Self, create_user_params: CreateUserParams) !void {
-            _ = try self.conn.exec(create_user_sql, .{ 
+            _ = try self.conn.exec(create_user_sql, .{
                 create_user_params.name,
                 create_user_params.email,
                 create_user_params.password,
@@ -60,17 +60,19 @@ pub fn Querier(comptime T: type) type {
         ;
 
         pub fn getUser(self: Self, id: i32) !models.User {
-            const result = try self.conn.query(get_user_sql, .{ 
+            const result = try self.conn.query(get_user_sql, .{
                 id, 
             });
             defer result.deinit();
-
             const row = try result.next() orelse return error.NotFound;
-            
+
             const row_id = row.get(i32, 0);
             const row_name = try self.allocator.dupe(u8, row.get([]const u8, 1));
+            errdefer self.allocator.free(row_name);
             const row_email = try self.allocator.dupe(u8, row.get([]const u8, 2));
+            errdefer self.allocator.free(row_email);
             const row_password = try self.allocator.dupe(u8, row.get([]const u8, 3));
+            errdefer self.allocator.free(row_password);
             const row_role = std.meta.stringToEnum(enums.UserRole, row.get([]const u8, 4)) orelse unreachable;
             const ip_address_cidr = row.get(?pg.Cidr, 5);
             const row_ip_address: ?pg.Cidr = blk: {
@@ -96,6 +98,9 @@ pub fn Querier(comptime T: type) type {
                 }
                 break :blk null;
             };
+            if (row_salary) |numeric| {
+                errdefer self.allocator.free(numeric.digits);
+            }
             const maybe_notes = row.get(?[]const u8, 7);
             const row_notes: ?[]const u8 = blk: {
                 if (maybe_notes) |field| {
@@ -103,6 +108,9 @@ pub fn Querier(comptime T: type) type {
                 }
                 break :blk null;
             };
+            if (row_notes) |field| {
+                errdefer self.allocator.free(field);
+            }
             const row_created_at = row.get(i64, 8);
             const row_updated_at = row.get(i64, 9);
             const row_archived_at = row.get(?i64, 10);
@@ -121,6 +129,83 @@ pub fn Querier(comptime T: type) type {
                 .updated_at = row_updated_at,
                 .archived_at = row_archived_at,
             };
+        }
+
+        pub const get_users_sql = 
+            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
+            \\ORDER BY id ASC
+        ;
+
+        pub fn getUsers(self: Self) ![]models.User {
+            const result = try self.conn.query(get_users_sql, .{});
+            defer result.deinit();
+            var out = std.ArrayList(models.User).init(self.allocator);
+            defer out.deinit();
+            while (try result.next()) |row| {
+                const row_id = row.get(i32, 0);
+                const row_name = try self.allocator.dupe(u8, row.get([]const u8, 1));
+                errdefer self.allocator.free(row_name);
+                const row_email = try self.allocator.dupe(u8, row.get([]const u8, 2));
+                errdefer self.allocator.free(row_email);
+                const row_password = try self.allocator.dupe(u8, row.get([]const u8, 3));
+                errdefer self.allocator.free(row_password);
+                const row_role = std.meta.stringToEnum(enums.UserRole, row.get([]const u8, 4)) orelse unreachable;
+                const ip_address_cidr = row.get(?pg.Cidr, 5);
+                const row_ip_address: ?pg.Cidr = blk: {
+                    if (ip_address_cidr) |cidr| {
+                        break :blk pg.Cidr{
+                            .address = try self.allocator.dupe(u8, cidr.address),
+                            .netmask = cidr.netmask,
+                            .family = cidr.family,
+                        };
+                    }
+                    break :blk null;
+                };
+                const salary_numeric = row.get(?pg.Numeric, 6);
+                const row_salary: ?pg.Numeric = blk: {
+                    if (salary_numeric) |numeric| {
+                        break :blk pg.Numeric{
+                            .number_of_digits = numeric.number_of_digits,
+                            .weight = numeric.weight,
+                            .sign = numeric.sign,
+                            .scale = numeric.scale,
+                            .digits = try self.allocator.dupe(u8, numeric.digits),
+                        };
+                    }
+                    break :blk null;
+                };
+                if (row_salary) |numeric| {
+                    errdefer self.allocator.free(numeric.digits);
+                }
+                const maybe_notes = row.get(?[]const u8, 7);
+                const row_notes: ?[]const u8 = blk: {
+                    if (maybe_notes) |field| {
+                        break :blk try self.allocator.dupe(u8, field);
+                    }
+                    break :blk null;
+                };
+                if (row_notes) |field| {
+                    errdefer self.allocator.free(field);
+                }
+                const row_created_at = row.get(i64, 8);
+                const row_updated_at = row.get(i64, 9);
+                const row_archived_at = row.get(?i64, 10);
+                try out.append(.{
+                    .__allocator = self.allocator,
+                    .id = row_id,
+                    .name = row_name,
+                    .email = row_email,
+                    .password = row_password,
+                    .role = row_role,
+                    .ip_address = row_ip_address,
+                    .salary = row_salary,
+                    .notes = row_notes,
+                    .created_at = row_created_at,
+                    .updated_at = row_updated_at,
+                    .archived_at = row_archived_at,
+                });
+            }
+            return try out.toOwnedSlice();
         }
 
     };

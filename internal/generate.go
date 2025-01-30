@@ -129,7 +129,7 @@ func renderSourceFiles(conf Config, req *plugin.GenerateRequest, models []Struct
 func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct) (*plugin.File, error) {
 	t := template.New("models.zig.gotmpl")
 	t, err := t.Funcs(templateFuncs(t)).
-		ParseFS(templates, "templates/models.zig.gotmpl")
+		ParseFS(templates, "templates/helpers.gotmpl", "templates/models.zig.gotmpl")
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct) (*p
 func renderEnums(conf Config, req *plugin.GenerateRequest, enums []Enum) (*plugin.File, error) {
 	t := template.New("enums.zig.gotmpl")
 	t, err := t.Funcs(templateFuncs(t)).
-		ParseFS(templates, "templates/enums.zig.gotmpl")
+		ParseFS(templates, "templates/helpers.gotmpl", "templates/enums.zig.gotmpl")
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func renderEnums(conf Config, req *plugin.GenerateRequest, enums []Enum) (*plugi
 func renderQueries(conf Config, req *plugin.GenerateRequest, queries []Query, models []Struct) (*plugin.File, error) {
 	t := template.New("queries.zig.gotmpl")
 	t, err := t.Funcs(templateFuncs(t)).
-		ParseFS(templates, "templates/queries.zig.gotmpl")
+		ParseFS(templates, "templates/helpers.gotmpl", "templates/queries.zig.gotmpl")
 	if err != nil {
 		return nil, err
 	}

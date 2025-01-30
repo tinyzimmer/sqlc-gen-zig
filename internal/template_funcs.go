@@ -20,7 +20,17 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		},
 		"indent": func(indent int, s string) string {
 			pad := strings.Repeat(" ", indent)
-			return pad + strings.Replace(s, "\n", "\n"+pad, -1)
+			var out strings.Builder
+			lines := strings.Split(s, "\n")
+			for i, line := range lines {
+				if strings.TrimSpace(line) != "" {
+					out.WriteString(pad + line)
+				}
+				if i != len(lines)-1 {
+					out.WriteString("\n")
+				}
+			}
+			return out.String()
 		},
 		"hasNonScalarFields": func(s Struct) bool {
 			for _, f := range s.Fields {
