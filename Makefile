@@ -10,11 +10,11 @@ build:
 	GOOS=wasip1 GOARCH=wasm $(GO) build -o "$(PLUGIN_FILE)" .
 
 e2e: build patch-sqlc-yaml
-	cd tests/e2e && docker-compose up -d
+	cd tests/e2e && docker compose up -d
 	sleep 5
 	cd tests/e2e && $(SQLC) generate
 	cd tests/e2e && $(ZIG) build test
-	cd tests/e2e && docker-compose down -v
+	cd tests/e2e && docker compose down -v
 
 SQLC_TEMPLATE := $(CURDIR)/tests/e2e/sqlc.template.yaml
 SQLC_OUTPUT := $(CURDIR)/tests/e2e/sqlc.yaml
