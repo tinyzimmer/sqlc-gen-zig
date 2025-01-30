@@ -102,10 +102,12 @@ test "generated many queries" {
 
     const users = try querier.getUsers();
     defer {
-        for (users) |user| {
-            user.deinit();
+        if (users.len > 0) {
+            for (users) |user| {
+                user.deinit();
+            }
+            allocator.free(users);
         }
-        allocator.free(users);
     }
     try expectEqual(2, users.len);
     for (1..2) |idx| {
