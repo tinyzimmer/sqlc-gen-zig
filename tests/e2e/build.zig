@@ -1,8 +1,5 @@
 const std = @import("std");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -21,7 +18,10 @@ pub fn build(b: *std.Build) void {
 
     const e2e_tests = b.addTest(.{
         .root_module = e2e_mod,
-        .test_runner = b.path("test_runner.zig"),
+        .test_runner = .{
+            .path = b.path("test_runner.zig"),
+            .mode = .simple,
+        },
     });
     const run_e2e_tests = b.addRunArtifact(e2e_tests);
     const test_step = b.step("test", "Run e2e tests");
