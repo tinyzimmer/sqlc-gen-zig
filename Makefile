@@ -1,4 +1,4 @@
-GO 	?= $(shell go env GOROOT)/bin/go
+GO  ?= $(shell go env GOROOT)/bin/go
 ZIG ?= $(shell zig env | jq -r .zig_exe)
 
 SQLC_VERSION := v1.28.0
