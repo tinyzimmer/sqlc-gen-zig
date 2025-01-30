@@ -39,7 +39,8 @@ jobs:
         run: make e2e
 
   publish:
-    name: Publish
+    name: Build and Publish
+    needs: e2e
     runs-on: ubuntu-latest
     permissions:
       contents: write
