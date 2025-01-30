@@ -40,7 +40,7 @@ release:
   header: |
     ## sqlc-gen-zig ({{ .Date }})
 
-    To update to this version, update your sqlc configuration like below:
+    To update to this version, use the following in your `sqlc.yaml`:
 
     ```yaml
     version: '2'
@@ -48,5 +48,5 @@ release:
     - name: zig
       wasm:
         url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/{{ .Tag }}/sqlc-gen-zig.wasm
-        sha256: {{ .Checksums }}
+        sha256: {{ trimsuffix .Checksums "  sqlc-gen-zig.wasm\n" }}
     ```
