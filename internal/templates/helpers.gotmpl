@@ -9,7 +9,7 @@ return .{
     .__allocator = self.allocator,
     {{- end }}
     {{- range $idx, $field := .Ret.Struct.Fields }}
-    .{{ $field.Name }} = row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
+    .{{ $field.Name }} = {{ if $field.Array}}try{{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
     {{- end }}
 };
 {{- else }}
@@ -28,7 +28,7 @@ while (try result.next()) |row| {
         .__allocator = self.allocator,
         {{- end }}
         {{- range $idx, $field := .Ret.Struct.Fields }}
-        .{{ $field.Name }} = row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
+        .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
         {{- end }}
     });
     {{- else -}}
