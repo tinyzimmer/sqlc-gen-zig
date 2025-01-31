@@ -9,7 +9,25 @@ An example project can be found in the [examples/](examples/) directory.
 
 ### Configuration
 
-The fields below are available as `options` in your `sqlc.yaml`.
+```yaml
+# sqlc.yaml
+version: "2"
+plugins:
+  - name: zig
+    wasm:
+      url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/v0.0.6/sqlc-gen-zig.wasm
+      sha256: e56c08768e411a7e8bee58ef8697cef73a37d917f84065248662bad89d1170e7
+sql:
+  - schema: schema.sql
+    queries: queries.sql
+    engine: postgresql
+    codegen:
+      - out: src/models
+        plugin: zig
+        options: {}
+```
+
+Below are the available `options` with their default values:
 
 ```yaml
 # The Zig backend to use (currently only "pg.zig" is supported)
