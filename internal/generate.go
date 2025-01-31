@@ -36,7 +36,6 @@ func (b Backend) ImportName() string {
 }
 
 type Config struct {
-	Out                         string   `json:"out"`
 	Backend                     Backend  `json:"backend"`
 	EmitExactTableNames         bool     `json:"emit_exact_table_names"`
 	InflectionExcludeTableNames []string `json:"inflection_exclude_table_names"`
