@@ -20,7 +20,7 @@ emit_exact_table_names: false
 inflection_exclude_table_names: []
 # The maximum number of query parameters before creating a struct to hold them
 query_parameter_limit: 3
-# Mark the inlined raw query strings as public
+# Mark the raw query string constants as public
 public_query_strings: false
 ```
 
