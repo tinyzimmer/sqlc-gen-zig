@@ -51,16 +51,33 @@ return try out.toOwnedSlice();
 {{- define "scanValue" -}}
 {{- if .Array }}
 const row_{{ .Name }} = std.ArrayList({{ .ZigType }}).init(self.allocator);
+defer row_{{ .Name }}.deinit();
 const row_{{ .Name }}_iter = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
 while (row_{{ .Name }}_iter.next()) |item| {
     {{- if isEnum . }}
-    // TODO: Enum array
+    try row_{{ .Name }}.append(std.meta.stringToEnum({{ .ZigType }}, item) orelse unreachable);
     {{- else if eq .ZigType "pg.Cidr" }}
-    // TODO: Cidr array
+    const address = try self.allocator.dupe(u8, item.address);
+    errdefer self.allocator.free(address);
+    try row_{{ .Name }}.append(pg.Cidr{
+        .address = address,
+        .netmask = item.netmask,
+        .family = item.family,
+    });
     {{- else if eq .ZigType "pg.Numeric" }}
-    // TODO: Numeric array
+    const digits = try self.allocator.dupe(u8, item.digits);
+    errdefer self.allocator.free(digits);
+    try row_{{ .Name }}.append(pg.Numeric{
+        .number_of_digits = item.number_of_digits,
+        .weight = item.weight,
+        .sign = item.sign,
+        .scale = item.scale,
+        .digits = digits,
+    });
     {{- else if isNonScalar . }}
-    // TODO: Non scalar array
+    const value = try self.allocator.dupe({{ allocType . }}, row.get({{ fieldScanType . }}, {{ .Index }}));
+    errdefer self.allocator.free(value);
+    try row_{{ .Name }}.append(value);
     {{- else }}
     try row_{{ .Name }}.append(item);
     {{- end }}
