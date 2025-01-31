@@ -38,22 +38,22 @@ pub const {{ $model.StructName }} = struct {
         if (self.{{ $field.Name }}) |field| {
             for (self.{{ $field.Name }}) |item| {
                 {{- if eq $field.ZigType "pg.Cidr" }}
-                self.__allocator.free(self.{{ $field.Name }}.address);
+                self.__allocator.free(item.address);
                 {{- else if eq $field.ZigType "pg.Numeric" }}
-                self.__allocator.free(self.{{ $field.Name }}.digits);
+                self.__allocator.free(item.digits);
                 {{- else }}
-                self.__allocator.free(self.{{ $field.Name }});
+                self.__allocator.free(item);
                 {{- end }}
             }
         }
         {{- else }}
         for (self.{{ $field.Name }}) |item| {
             {{- if eq $field.ZigType "pg.Cidr" }}
-            self.__allocator.free(self.{{ $field.Name }}.address);
+            self.__allocator.free(item.address);
             {{- else if eq $field.ZigType "pg.Numeric" }}
-            self.__allocator.free(self.{{ $field.Name }}.digits);
+            self.__allocator.free(item.digits);
             {{- else }}
-            self.__allocator.free(self.{{ $field.Name }});
+            self.__allocator.free(item);
             {{- end }}
         }
         {{- end }}
@@ -81,7 +81,7 @@ pub const {{ $model.StructName }} = struct {
         self.__allocator.free(self.{{ $field.Name }});
         {{- end }}
         {{- end }}
-        
+
         {{- end }}
         {{- end }}
     }
