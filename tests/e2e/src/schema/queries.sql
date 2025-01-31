@@ -10,6 +10,10 @@ WHERE id = $1 LIMIT 1;
 SELECT id FROM "user"
 WHERE email = $1 LIMIT 1;
 
+-- name: GetUserIDsByRole :many
+SELECT id FROM "user"
+WHERE role = $1;
+
 -- name: CreateUser :exec
 INSERT INTO "user" (
     name, 

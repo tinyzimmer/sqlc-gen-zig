@@ -159,6 +159,24 @@ pub fn Querier(comptime T: type) type {
             return row_id;
         }
 
+        pub const get_user_i_ds_by_role_sql = 
+            \\SELECT id FROM "user"
+            \\WHERE role = $1
+        ;
+
+        pub fn getUserIDsByRole(self: Self, role: enums.UserRole) ![]i32 {
+            const result = try self.conn.query(get_user_i_ds_by_role_sql, .{
+                @tagName(role), 
+            });
+            defer result.deinit();
+            var out = std.ArrayList(i32).init(self.allocator);
+            defer out.deinit();
+            while (try result.next()) |row| {
+                const row_id = row.get(i32, 0);try out.append(row_id);
+            }
+            return try out.toOwnedSlice();
+        }
+
         pub const get_users_sql = 
             \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
             \\ORDER BY id ASC

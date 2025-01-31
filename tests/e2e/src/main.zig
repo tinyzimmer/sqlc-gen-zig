@@ -9,9 +9,70 @@ const PoolQuerier = queries.PoolQuerier;
 
 const schema = @embedFile("schema/schema.sql");
 
-test "generated one field queries" {}
+test "generated one field queries" {
+    const expectEqual = std.testing.expectEqual;
+    const expectError = std.testing.expectError;
+    const allocator = std.testing.allocator;
 
-test "generated many field queries" {}
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
+
+    const querier = PoolQuerier.init(allocator, test_db.pool);
+    try expectError(error.NotFound, querier.getUserIDByEmail("test@example.com"));
+
+    try querier.createUser(.{
+        .name = "test",
+        .email = "test@example.com",
+        .password = "password",
+        .role = .admin,
+        .ip_address = "127.0.0.1",
+        .salary = 1000.50,
+    });
+
+    const user_id = try querier.getUserIDByEmail("test@example.com");
+    try expectEqual(1, user_id);
+}
+
+test "generated many field queries" {
+    const expectEqual = std.testing.expectEqual;
+    const allocator = std.testing.allocator;
+
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
+
+    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const empty_users = try querier.getUserIDsByRole(.admin);
+    try expectEqual(0, empty_users.len);
+
+    try querier.createUser(.{
+        .name = "user1",
+        .email = "user1@example.com",
+        .password = "password",
+        .role = .admin,
+        .ip_address = "127.0.0.1",
+        .salary = 1000.50,
+    });
+    try querier.createUser(.{
+        .name = "user2",
+        .email = "user2@example.com",
+        .password = "password",
+        .role = .admin,
+        .ip_address = "127.0.0.1",
+        .salary = 1000.50,
+    });
+    try querier.createUser(.{
+        .name = "user3",
+        .email = "user3@example.com",
+        .password = "password",
+        .role = .user,
+        .ip_address = "127.0.0.1",
+        .salary = 1000.50,
+    });
+
+    const user_ids = try querier.getUserIDsByRole(.admin);
+    defer allocator.free(user_ids);
+    try expectEqual(2, user_ids.len);
+}
 
 test "generated one struct queries" {
     const expect = std.testing.expect;

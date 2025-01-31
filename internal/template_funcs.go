@@ -111,7 +111,11 @@ func templateFuncs(t *template.Template) template.FuncMap {
 						}
 					}
 				} else {
-					out.WriteString(arg.Name)
+					if strings.HasPrefix(arg.Field.ZigType, "enums.") {
+						out.WriteString(fmt.Sprintf("@tagName(%s)", arg.Name))
+					} else {
+						out.WriteString(arg.Name)
+					}
 				}
 				if i != len(q.Args)-1 {
 					out.WriteString(",\n")
