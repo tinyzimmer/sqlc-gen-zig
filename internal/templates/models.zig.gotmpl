@@ -30,7 +30,38 @@ pub const {{ $model.StructName }} = struct {
     {{- "\n" }}
     pub fn deinit(self: *const {{ $model.StructName }}) void {
         {{- range $field := $model.Fields }}
+        
+        {{- if $field.Array }}
+
         {{- if isNonScalar $field }}
+        {{- if $field.Nullable }}
+        if (self.{{ $field.Name }}) |field| {
+            for (self.{{ $field.Name }}) |item| {
+                {{- if eq $field.ZigType "pg.Cidr" }}
+                self.__allocator.free(self.{{ $field.Name }}.address);
+                {{- else if eq $field.ZigType "pg.Numeric" }}
+                self.__allocator.free(self.{{ $field.Name }}.digits);
+                {{- else }}
+                self.__allocator.free(self.{{ $field.Name }});
+                {{- end }}
+            }
+        }
+        {{- else }}
+        for (self.{{ $field.Name }}) |item| {
+            {{- if eq $field.ZigType "pg.Cidr" }}
+            self.__allocator.free(self.{{ $field.Name }}.address);
+            {{- else if eq $field.ZigType "pg.Numeric" }}
+            self.__allocator.free(self.{{ $field.Name }}.digits);
+            {{- else }}
+            self.__allocator.free(self.{{ $field.Name }});
+            {{- end }}
+        }
+        {{- end }}
+        {{- end }}
+        self.__allocator.free(self.{{ $field.Name }});
+        
+        {{- else if isNonScalar $field }}
+        
         {{- if $field.Nullable }}
         if (self.{{ $field.Name }}) |field| {
             {{- if eq $field.ZigType "pg.Cidr" }}
@@ -50,6 +81,7 @@ pub const {{ $model.StructName }} = struct {
         self.__allocator.free(self.{{ $field.Name }});
         {{- end }}
         {{- end }}
+        
         {{- end }}
         {{- end }}
     }
