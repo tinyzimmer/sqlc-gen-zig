@@ -23,7 +23,7 @@ pub fn Querier(comptime T: type) type {
         }
         
         const create_user_sql = 
-            \\INSERT INTO "user" (
+            \\INSERT INTO users (
             \\    name, 
             \\    email, 
             \\    password, 
@@ -59,7 +59,7 @@ pub fn Querier(comptime T: type) type {
         }
 
         const get_user_sql = 
-            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
+            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM users
             \\WHERE id = $1 LIMIT 1
         ;
 
@@ -146,7 +146,7 @@ pub fn Querier(comptime T: type) type {
         }
 
         const get_user_by_email_sql = 
-            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
+            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM users
             \\WHERE email = $1 LIMIT 1
         ;
 
@@ -233,7 +233,7 @@ pub fn Querier(comptime T: type) type {
         }
 
         const get_user_salaries_sql = 
-            \\SELECT id, email, salary FROM "user"
+            \\SELECT id, email, salary FROM users
             \\WHERE salary >= $1 AND salary <= $2
         ;
 
@@ -294,7 +294,7 @@ pub fn Querier(comptime T: type) type {
         }
 
         const get_users_sql = 
-            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
+            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM users
         ;
 
 
@@ -380,7 +380,7 @@ pub fn Querier(comptime T: type) type {
         }
 
         const get_users_by_role_sql = 
-            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
+            \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM users
             \\WHERE role = $1
         ;
 

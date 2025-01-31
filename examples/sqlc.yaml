@@ -11,4 +11,5 @@ sql:
   codegen:
   - out: src/models
     plugin: zig
-    options: {}
+    options:
+      emit_exact_table_names: true
