@@ -159,6 +159,24 @@ pub fn Querier(comptime T: type) type {
             return row_id;
         }
 
+        pub const get_user_i_ds_by_ip_address_sql = 
+            \\SELECT id FROM "user"
+            \\WHERE ip_address = $1
+        ;
+
+        pub fn getUserIDsByIPAddress(self: Self, ip_address: []const u8) ![]i32 {
+            const result = try self.conn.query(get_user_i_ds_by_ip_address_sql, .{
+                ip_address, 
+            });
+            defer result.deinit();
+            var out = std.ArrayList(i32).init(self.allocator);
+            defer out.deinit();
+            while (try result.next()) |row| {
+                const row_id = row.get(i32, 0);try out.append(row_id);
+            }
+            return try out.toOwnedSlice();
+        }
+
         pub const get_user_i_ds_by_role_sql = 
             \\SELECT id FROM "user"
             \\WHERE role = $1
@@ -167,6 +185,25 @@ pub fn Querier(comptime T: type) type {
         pub fn getUserIDsByRole(self: Self, role: enums.UserRole) ![]i32 {
             const result = try self.conn.query(get_user_i_ds_by_role_sql, .{
                 @tagName(role), 
+            });
+            defer result.deinit();
+            var out = std.ArrayList(i32).init(self.allocator);
+            defer out.deinit();
+            while (try result.next()) |row| {
+                const row_id = row.get(i32, 0);try out.append(row_id);
+            }
+            return try out.toOwnedSlice();
+        }
+
+        pub const get_user_i_ds_by_salary_range_sql = 
+            \\SELECT id FROM "user"
+            \\WHERE salary >= $1 AND salary <= $2
+        ;
+
+        pub fn getUserIDsBySalaryRange(self: Self, salary_1: f64, salary_2: f64) ![]i32 {
+            const result = try self.conn.query(get_user_i_ds_by_salary_range_sql, .{
+                salary_1,
+                salary_2, 
             });
             defer result.deinit();
             var out = std.ArrayList(i32).init(self.allocator);

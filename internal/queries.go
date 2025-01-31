@@ -22,6 +22,28 @@ type Query struct {
 	Args         []QueryValue
 }
 
+func (q *Query) ArgNames() []string {
+	// Dedup the arg names
+	var names []string
+	counts := make(map[string]int)
+	for _, arg := range q.Args {
+		counts[arg.Name]++
+	}
+	indexes := make(map[string]int)
+	for n := range counts {
+		indexes[n] = 0
+	}
+	for _, arg := range q.Args {
+		if counts[arg.Name] > 1 {
+			names = append(names, fmt.Sprintf("%s_%d", arg.Name, indexes[arg.Name]+1))
+			indexes[arg.Name]++
+		} else {
+			names = append(names, arg.Name)
+		}
+	}
+	return names
+}
+
 type QueryValue struct {
 	Emit   bool
 	Name   string

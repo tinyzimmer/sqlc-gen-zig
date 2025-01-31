@@ -14,6 +14,14 @@ WHERE email = $1 LIMIT 1;
 SELECT id FROM "user"
 WHERE role = $1;
 
+-- name: GetUserIDsBySalaryRange :many
+SELECT id FROM "user"
+WHERE salary >= $1 AND salary <= $2;
+
+-- name: GetUserIDsByIPAddress :many
+SELECT id FROM "user"
+WHERE ip_address = $1;
+
 -- name: CreateUser :exec
 INSERT INTO "user" (
     name, 

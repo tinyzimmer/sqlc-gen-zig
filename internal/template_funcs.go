@@ -75,12 +75,20 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		"queryFuncArgs": func(q Query) string {
 			var out strings.Builder
 			out.WriteString("self: Self")
-			for _, arg := range q.Args {
+			for i, name := range q.ArgNames() {
+				arg := q.Args[i]
 				out.WriteString(", ")
 				if arg.Struct != nil {
-					out.WriteString(fmt.Sprintf("%s: %s", arg.Name, arg.Struct.StructName))
+					out.WriteString(fmt.Sprintf("%s: %s", name, arg.Struct.StructName))
 				} else {
-					out.WriteString(fmt.Sprintf("%s: %s", arg.Name, arg.Field.ZigType))
+					switch arg.Field.ZigType {
+					case "pg.Numeric":
+						out.WriteString(fmt.Sprintf("%s: f64", name))
+					case "pg.Cidr":
+						out.WriteString(fmt.Sprintf("%s: []const u8", name))
+					default:
+						out.WriteString(fmt.Sprintf("%s: %s", name, arg.Field.ZigType))
+					}
 				}
 			}
 			return out.String()
@@ -95,7 +103,8 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		},
 		"queryExecParams": func(q Query, indent int) string {
 			var out strings.Builder
-			for i, arg := range q.Args {
+			for i, name := range q.ArgNames() {
+				arg := q.Args[i]
 				if i != 0 {
 					out.WriteString(strings.Repeat(" ", indent))
 				}
@@ -105,16 +114,16 @@ func templateFuncs(t *template.Template) template.FuncMap {
 							out.WriteString(fmt.Sprintf(",\n%s", strings.Repeat(" ", indent)))
 						}
 						if strings.HasPrefix(field.ZigType, "enums.") {
-							out.WriteString(fmt.Sprintf("@tagName(%s.%s)", arg.Name, field.Name))
+							out.WriteString(fmt.Sprintf("@tagName(%s.%s)", name, field.Name))
 						} else {
-							out.WriteString(fmt.Sprintf("%s.%s", arg.Name, field.Name))
+							out.WriteString(fmt.Sprintf("%s.%s", name, field.Name))
 						}
 					}
 				} else {
 					if strings.HasPrefix(arg.Field.ZigType, "enums.") {
-						out.WriteString(fmt.Sprintf("@tagName(%s)", arg.Name))
+						out.WriteString(fmt.Sprintf("@tagName(%s)", name))
 					} else {
-						out.WriteString(arg.Name)
+						out.WriteString(name)
 					}
 				}
 				if i != len(q.Args)-1 {

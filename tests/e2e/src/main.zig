@@ -70,7 +70,11 @@ test "generated many field queries" {
     });
 
     const user_ids = try querier.getUserIDsByRole(.admin);
-    defer allocator.free(user_ids);
+    defer {
+        if (user_ids.len > 0) {
+            allocator.free(user_ids);
+        }
+    }
     try expectEqual(2, user_ids.len);
 }
 
@@ -172,6 +176,65 @@ test "generated many struct queries" {
         try expectEqual(.admin, user.role);
         try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
     }
+}
+
+test "generated special type queries" {
+    // const expect = std.testing.expect;
+    const expectEqual = std.testing.expectEqual;
+    // const expectEqualSlices = std.testing.expectEqualSlices;
+    // const expectEqualStrings = std.testing.expectEqualStrings;
+
+    const allocator = std.testing.allocator;
+
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
+
+    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const empty = try querier.getUserIDsBySalaryRange(0, 1000);
+    try expectEqual(0, empty.len);
+
+    try querier.createUser(.{
+        .name = "user1",
+        .email = "user1@example.com",
+        .password = "password",
+        .role = .admin,
+        .ip_address = "192.168.1.1",
+        .salary = 1000,
+    });
+
+    try querier.createUser(.{
+        .name = "user2",
+        .email = "user2@example.com",
+        .password = "password",
+        .role = .user,
+        .ip_address = "192.168.1.1",
+        .salary = 500,
+    });
+
+    try querier.createUser(.{
+        .name = "user3",
+        .email = "user3@example.com",
+        .password = "password",
+        .role = .user,
+        .ip_address = "192.168.1.2",
+        .salary = 1500,
+    });
+
+    const users = try querier.getUserIDsBySalaryRange(0, 1000);
+    defer {
+        if (users.len > 0) {
+            allocator.free(users);
+        }
+    }
+    try expectEqual(2, users.len);
+
+    const ip_users = try querier.getUserIDsByIPAddress("192.168.1.1");
+    defer {
+        if (ip_users.len > 0) {
+            allocator.free(ip_users);
+        }
+    }
+    try expectEqual(2, ip_users.len);
 }
 
 const TestDB = struct {
