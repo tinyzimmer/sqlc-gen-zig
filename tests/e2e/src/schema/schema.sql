@@ -16,7 +16,6 @@ CREATE TABLE users (
 
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) NOT NULL,
     order_date TIMESTAMP DEFAULT NOW() NOT NULL,
     item_ids INTEGER[] NOT NULL,
     item_quantities NUMERIC(10, 2)[] NOT NULL,

@@ -9,7 +9,7 @@ return .{
     .__allocator = self.allocator,
     {{- end }}
     {{- range $idx, $field := .Ret.Struct.Fields }}
-    .{{ $field.Name }} = {{ if $field.Array}}try{{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
+    .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
     {{- end }}
 };
 {{- else }}
@@ -50,9 +50,9 @@ return try out.toOwnedSlice();
 
 {{- define "scanValue" -}}
 {{- if .Array }}
-const row_{{ .Name }} = std.ArrayList({{ .ZigType }}).init(self.allocator);
+var row_{{ .Name }} = std.ArrayList({{ .ZigType }}).init(self.allocator);
 defer row_{{ .Name }}.deinit();
-const row_{{ .Name }}_iter = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
+var row_{{ .Name }}_iter = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
 while (row_{{ .Name }}_iter.next()) |item| {
     {{- if isEnum . }}
     try row_{{ .Name }}.append(std.meta.stringToEnum({{ .ZigType }}, item) orelse unreachable);

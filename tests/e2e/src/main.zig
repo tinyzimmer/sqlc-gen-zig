@@ -4,8 +4,10 @@ const DefaultPrng = std.Random.DefaultPrng;
 
 const pg = @import("pg");
 
+const OrderQueries = @import("gen/orders.sql.zig");
+const OrderQuerier = OrderQueries.PoolQuerier;
 const UserQueries = @import("gen/users.sql.zig");
-const UsersQuerier = UserQueries.PoolQuerier;
+const UserQuerier = UserQueries.PoolQuerier;
 
 const schema = @embedFile("schema/schema.sql");
 
@@ -17,7 +19,7 @@ test "one field queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = UsersQuerier.init(allocator, test_db.pool);
+    const querier = UserQuerier.init(allocator, test_db.pool);
     try expectError(error.NotFound, querier.getUserIDByEmail("test@example.com"));
 
     try querier.createUser(.{
@@ -40,7 +42,7 @@ test "many field queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = UsersQuerier.init(allocator, test_db.pool);
+    const querier = UserQuerier.init(allocator, test_db.pool);
     const empty_users = try querier.getUserIDsByRole(.admin);
     try expectEqual(0, empty_users.len);
 
@@ -90,7 +92,7 @@ test "one struct queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = UsersQuerier.init(allocator, test_db.pool);
+    const querier = UserQuerier.init(allocator, test_db.pool);
 
     try expectError(error.NotFound, querier.getUser(1));
 
@@ -128,7 +130,7 @@ test "many struct queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = UsersQuerier.init(allocator, test_db.pool);
+    const querier = UserQuerier.init(allocator, test_db.pool);
 
     const empty_users = try querier.getUsers();
     try expectEqual(0, empty_users.len);
@@ -186,7 +188,7 @@ test "special type queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = UsersQuerier.init(allocator, test_db.pool);
+    const querier = UserQuerier.init(allocator, test_db.pool);
     const empty = try querier.getUserIDsBySalaryRange(0, 1000);
     try expectEqual(0, empty.len);
 
@@ -243,7 +245,8 @@ test "partial struct returns" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = UsersQuerier.init(allocator, test_db.pool);
+    const querier = UserQuerier.init(allocator, test_db.pool);
+
     const empty = try querier.getUserEmails();
     try expectEqual(0, empty.len);
 
@@ -284,6 +287,67 @@ test "partial struct returns" {
         try expectEqual(@as(i32, @intCast(idx)), user.id);
         try expectEqualStrings(email, user.email);
     }
+}
+
+test "array types" {
+    const expect = std.testing.expect;
+    const expectEqual = std.testing.expectEqual;
+    const expectEqualStrings = std.testing.expectEqualStrings;
+
+    const allocator = std.testing.allocator;
+
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
+
+    const querier = OrderQuerier.init(allocator, test_db.pool);
+
+    const empty = try querier.getOrders();
+    try expectEqual(0, empty.len);
+
+    const item_ids: []const i32 = &.{ 1, 2, 3 };
+    const item_quantities: []const f64 = &.{ 1.5, 2.5, 3.5 };
+    const shipping_addresses: []const []const u8 = &.{ "address1", "address2", "address3" };
+    const ip_addresses: []const []const u8 = &.{ "192.168.1.1", "172.16.0.1", "10.0.0.1" };
+
+    try querier.createOrder(.{
+        .order_date = std.time.milliTimestamp(),
+        .item_ids = @constCast(item_ids),
+        .item_quantities = @constCast(item_quantities),
+        .shipping_addresses = @constCast(shipping_addresses),
+        .ip_addresses = @constCast(ip_addresses),
+        .total_amount = 1000.50,
+    });
+
+    const order = try querier.getOrders();
+    defer {
+        if (order.len > 0) {
+            for (order) |o| {
+                o.deinit();
+            }
+            allocator.free(order);
+        }
+    }
+    try expectEqual(1, order.len);
+
+    const o = &order[0];
+    try expectEqual(1, o.id);
+    try expect(o.order_date > 0);
+    try expectEqual(3, o.item_ids.len);
+    try expectEqual(1, o.item_ids[0]);
+    try expectEqual(2, o.item_ids[1]);
+    try expectEqual(3, o.item_ids[2]);
+    try expectEqual(3, o.item_quantities.len);
+    try expectEqual(1.5, o.item_quantities[0].toFloat());
+    try expectEqual(2.5, o.item_quantities[1].toFloat());
+    try expectEqual(3.5, o.item_quantities[2].toFloat());
+    try expectEqual(3, o.shipping_addresses.len);
+    try expectEqualStrings("address1", o.shipping_addresses[0]);
+    try expectEqualStrings("address2", o.shipping_addresses[1]);
+    try expectEqualStrings("address3", o.shipping_addresses[2]);
+    try expectEqual(3, o.ip_addresses.len);
+    try expectEqualStrings(&.{ 192, 168, 1, 1 }, o.ip_addresses[0].address);
+    try expectEqualStrings(&.{ 172, 16, 0, 1 }, o.ip_addresses[1].address);
+    try expectEqualStrings(&.{ 10, 0, 0, 1 }, o.ip_addresses[2].address);
 }
 
 const TestDB = struct {
