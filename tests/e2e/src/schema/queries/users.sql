@@ -1,33 +1,33 @@
 -- name: GetUsers :many
-SELECT * FROM "user"
+SELECT * FROM users
 ORDER BY id ASC;
 
 -- name: GetUserEmails :many
-SELECT id, email FROM "user"
+SELECT id, email FROM users
 ORDER BY id ASC;
 
 -- name: GetUser :one
-SELECT * FROM "user"
+SELECT * FROM users
 WHERE id = $1 LIMIT 1;
 
 -- name: GetUserIDByEmail :one
-SELECT id FROM "user"
+SELECT id FROM users
 WHERE email = $1 LIMIT 1;
 
 -- name: GetUserIDsByRole :many
-SELECT id FROM "user"
+SELECT id FROM users
 WHERE role = $1;
 
 -- name: GetUserIDsBySalaryRange :many
-SELECT id FROM "user"
+SELECT id FROM users
 WHERE salary >= $1 AND salary <= $2;
 
 -- name: GetUserIDsByIPAddress :many
-SELECT id FROM "user"
+SELECT id FROM users
 WHERE ip_address = $1;
 
 -- name: CreateUser :exec
-INSERT INTO "user" (
+INSERT INTO users (
     name, 
     email, 
     password, 

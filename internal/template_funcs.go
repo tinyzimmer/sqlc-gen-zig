@@ -180,9 +180,6 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			return strings.HasPrefix(field.ZigType, "enums.")
 		},
 		"isNonScalar": func(field Field) bool {
-			if field.Array {
-				return true
-			}
 			if strings.HasPrefix(field.ZigType, "enums.") {
 				return false
 			}
@@ -194,9 +191,6 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			}
 		},
 		"allocType": func(field Field) string {
-			if field.Array {
-				panic("unimplemented")
-			}
 			baseType := strings.TrimPrefix(field.ZigType, "[]")
 			baseType = strings.TrimPrefix(baseType, "const ")
 			return baseType
