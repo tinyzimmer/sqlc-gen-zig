@@ -75,7 +75,7 @@ while (row_{{ .Name }}_iter.next()) |item| {
         .digits = digits,
     });
     {{- else if isNonScalar . }}
-    const value = try self.allocator.dupe({{ allocType . }}, row.get({{ fieldScanType . }}, {{ .Index }}));
+    const value = try self.allocator.dupe({{ allocType . }}, item);
     errdefer self.allocator.free(value);
     try row_{{ .Name }}.append(value);
     {{- else }}
