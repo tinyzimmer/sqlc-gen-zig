@@ -9,7 +9,7 @@ const PoolQuerier = queries.PoolQuerier;
 
 const schema = @embedFile("schema/schema.sql");
 
-test "generated one field queries" {
+test "one field queries" {
     const expectEqual = std.testing.expectEqual;
     const expectError = std.testing.expectError;
     const allocator = std.testing.allocator;
@@ -33,7 +33,7 @@ test "generated one field queries" {
     try expectEqual(1, user_id);
 }
 
-test "generated many field queries" {
+test "many field queries" {
     const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
@@ -78,7 +78,7 @@ test "generated many field queries" {
     try expectEqual(2, user_ids.len);
 }
 
-test "generated one struct queries" {
+test "one struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -117,7 +117,7 @@ test "generated one struct queries" {
     try expectEqual(1000.50, user.salary.?.toFloat());
 }
 
-test "generated many struct queries" {
+test "many struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -178,7 +178,7 @@ test "generated many struct queries" {
     }
 }
 
-test "generated special type queries" {
+test "special type queries" {
     const expectEqual = std.testing.expectEqual;
 
     const allocator = std.testing.allocator;
@@ -232,6 +232,58 @@ test "generated special type queries" {
         }
     }
     try expectEqual(2, ip_users.len);
+}
+
+test "partial struct returns" {
+    const expectEqual = std.testing.expectEqual;
+    const expectEqualStrings = std.testing.expectEqualStrings;
+
+    const allocator = std.testing.allocator;
+
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
+
+    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const empty = try querier.getUserEmails();
+    try expectEqual(0, empty.len);
+
+    try querier.createUser(.{
+        .name = "user1",
+        .email = "user1@example.com",
+        .password = "password",
+        .role = .admin,
+        .ip_address = "192.168.1.1",
+        .salary = 1000,
+    });
+
+    try querier.createUser(.{
+        .name = "user2",
+        .email = "user2@example.com",
+        .password = "password",
+        .role = .user,
+        .ip_address = "192.168.1.1",
+        .salary = 500,
+    });
+
+    const users = try querier.getUserEmails();
+    defer {
+        if (users.len > 0) {
+            for (users) |user| {
+                user.deinit();
+            }
+            allocator.free(users);
+        }
+    }
+    try expectEqual(2, users.len);
+    for (1..2) |idx| {
+        const user = &users[idx - 1];
+
+        var emailbuf: [18]u8 = undefined;
+        const email = try std.fmt.bufPrint(&emailbuf, "user{d}@example.com", .{idx});
+
+        try expectEqual(@as(i32, @intCast(idx)), user.id);
+        try expectEqualStrings(email, user.email);
+    }
 }
 
 const TestDB = struct {

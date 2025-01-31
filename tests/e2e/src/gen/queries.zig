@@ -46,6 +46,7 @@ pub fn Querier(comptime T: type) type {
             salary: ?f64 = null,
         };
 
+
         pub fn createUser(self: Self, create_user_params: CreateUserParams) !void {
             _ = try self.conn.exec(create_user_sql, .{
                 create_user_params.name,
@@ -61,6 +62,7 @@ pub fn Querier(comptime T: type) type {
             \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
             \\WHERE id = $1 LIMIT 1
         ;
+
 
         pub fn getUser(self: Self, id: i32) !models.User {
             const result = try self.conn.query(get_user_sql, .{
@@ -143,10 +145,46 @@ pub fn Querier(comptime T: type) type {
             };
         }
 
+        pub const get_user_emails_sql = 
+            \\SELECT id, email FROM "user"
+            \\ORDER BY id ASC
+        ;
+
+        pub const GetUserEmailsRow = struct {
+            __allocator: Allocator,
+
+            id: i32,
+            email: []const u8,
+
+            pub fn deinit(self: *const GetUserEmailsRow) void {
+                self.__allocator.free(self.email);
+            }
+        };
+
+
+        pub fn getUserEmails(self: Self) ![]GetUserEmailsRow {
+            const result = try self.conn.query(get_user_emails_sql, .{});
+            defer result.deinit();
+            var out = std.ArrayList(GetUserEmailsRow).init(self.allocator);
+            defer out.deinit();
+            while (try result.next()) |row| {
+                const row_id = row.get(i32, 0);
+                const row_email = try self.allocator.dupe(u8, row.get([]const u8, 1));
+                errdefer self.allocator.free(row_email);
+                try out.append(.{
+                    .__allocator = self.allocator,
+                    .id = row_id,
+                    .email = row_email,
+                });
+            }
+            return try out.toOwnedSlice();
+        }
+
         pub const get_user_id_by_email_sql = 
             \\SELECT id FROM "user"
             \\WHERE email = $1 LIMIT 1
         ;
+
 
         pub fn getUserIDByEmail(self: Self, email: []const u8) !i32 {
             const result = try self.conn.query(get_user_id_by_email_sql, .{
@@ -163,6 +201,7 @@ pub fn Querier(comptime T: type) type {
             \\SELECT id FROM "user"
             \\WHERE ip_address = $1
         ;
+
 
         pub fn getUserIDsByIPAddress(self: Self, ip_address: []const u8) ![]i32 {
             const result = try self.conn.query(get_user_i_ds_by_ip_address_sql, .{
@@ -182,6 +221,7 @@ pub fn Querier(comptime T: type) type {
             \\WHERE role = $1
         ;
 
+
         pub fn getUserIDsByRole(self: Self, role: enums.UserRole) ![]i32 {
             const result = try self.conn.query(get_user_i_ds_by_role_sql, .{
                 @tagName(role), 
@@ -199,6 +239,7 @@ pub fn Querier(comptime T: type) type {
             \\SELECT id FROM "user"
             \\WHERE salary >= $1 AND salary <= $2
         ;
+
 
         pub fn getUserIDsBySalaryRange(self: Self, salary_1: f64, salary_2: f64) ![]i32 {
             const result = try self.conn.query(get_user_i_ds_by_salary_range_sql, .{
@@ -218,6 +259,7 @@ pub fn Querier(comptime T: type) type {
             \\SELECT id, name, email, password, role, ip_address, salary, notes, created_at, updated_at, archived_at FROM "user"
             \\ORDER BY id ASC
         ;
+
 
         pub fn getUsers(self: Self) ![]models.User {
             const result = try self.conn.query(get_users_sql, .{});

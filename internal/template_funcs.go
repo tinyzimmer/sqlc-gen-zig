@@ -68,6 +68,9 @@ func templateFuncs(t *template.Template) template.FuncMap {
 				return "void"
 			}
 			if q.Ret.Struct != nil {
+				if q.Ret.Emit {
+					return q.Ret.Struct.StructName
+				}
 				return fmt.Sprintf("models.%s", q.Ret.Struct.StructName)
 			}
 			return fmt.Sprintf("%s", q.Ret.Field.ZigType)

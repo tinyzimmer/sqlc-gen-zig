@@ -32,6 +32,7 @@ pub fn Querier(comptime T: type) type {
         {{- range $comment := $query.Comments }}
         // {{ $comment }}
         {{- end }}
+        
         {{- if hasLocalStructArg $query }}
         {{- range $arg := $query.Args }}
         {{- if $arg.Struct }}
@@ -44,6 +45,49 @@ pub fn Querier(comptime T: type) type {
         {{- end }}
         {{- end }}
         {{- end }}
+
+        {{- if and (and $query.Ret $query.Ret.Struct) $query.Ret.Emit }}
+        pub const {{ $query.Ret.Struct.StructName }} = struct {
+            {{- if hasNonScalarFields $query.Ret.Struct }}
+            __allocator: Allocator,
+            {{- "\n" -}}
+            {{- end }}
+            {{- range $field := $query.Ret.Struct.Fields }}
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
+            {{- end }}
+
+            {{- if hasNonScalarFields $query.Ret.Struct }}
+            {{- "\n" }}
+            pub fn deinit(self: *const {{ $query.Ret.Struct.StructName }}) void {
+                {{- range $field := $query.Ret.Struct.Fields }}
+                {{- if isNonScalar $field }}
+                {{- if $field.Nullable }}
+                if (self.{{ $field.Name }}) |field| {
+                    {{- if eq $field.ZigType "pg.Cidr" }}
+                    self.__allocator.free(field.address);
+                    {{- else if eq $field.ZigType "pg.Numeric" }}
+                    self.__allocator.free(field.digits);
+                    {{- else }}
+                    self.__allocator.free(field);
+                    {{- end }}
+                }
+                {{- else }}
+                {{- if eq $field.ZigType "pg.Cidr" }}
+                self.__allocator.free(self.{{ $field.Name }}.address);
+                {{- else if eq $field.ZigType "pg.Numeric" }}
+                self.__allocator.free(self.{{ $field.Name }}.digits);
+                {{- else }}
+                self.__allocator.free(self.{{ $field.Name }});
+                {{- end }}
+                {{- end }}
+                {{- end }}
+                {{- end }}
+            }
+            {{- end }}
+        };
+        {{- "\n" -}}
+        {{- end }}
+
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
             {{- if isExecQuery $query }}
             _ = try self.conn.exec({{ $query.ConstantName }}, .{ {{- if not $query.Args -}} });{{- else }}

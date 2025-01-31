@@ -2,6 +2,10 @@
 SELECT * FROM "user"
 ORDER BY id ASC;
 
+-- name: GetUserEmails :many
+SELECT id, email FROM "user"
+ORDER BY id ASC;
+
 -- name: GetUser :one
 SELECT * FROM "user"
 WHERE id = $1 LIMIT 1;
