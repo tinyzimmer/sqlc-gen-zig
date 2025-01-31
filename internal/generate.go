@@ -105,9 +105,8 @@ func validateRequest(req *plugin.GenerateRequest) error {
 }
 
 const (
-	modelsFilename  = "models.zig"
-	enumsFilename   = "enums.zig"
-	queriesFilename = "queries.zig"
+	modelsFilename = "models.zig"
+	enumsFilename  = "enums.zig"
 )
 
 func renderSourceFiles(conf Config, req *plugin.GenerateRequest, models []Struct, enums []Enum, queries []Query) ([]*plugin.File, error) {
@@ -119,11 +118,11 @@ func renderSourceFiles(conf Config, req *plugin.GenerateRequest, models []Struct
 	if err != nil {
 		return nil, err
 	}
-	queriesFile, err := renderQueries(conf, req, queries, models)
+	queryFiles, err := renderQueries(conf, req, queries, models)
 	if err != nil {
 		return nil, err
 	}
-	return []*plugin.File{modelsFile, enumsFile, queriesFile}, nil
+	return append([]*plugin.File{modelsFile, enumsFile}, queryFiles...), nil
 }
 
 func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct) (*plugin.File, error) {
@@ -170,29 +169,38 @@ func renderEnums(conf Config, req *plugin.GenerateRequest, enums []Enum) (*plugi
 	}, err
 }
 
-func renderQueries(conf Config, req *plugin.GenerateRequest, queries []Query, models []Struct) (*plugin.File, error) {
+func renderQueries(conf Config, req *plugin.GenerateRequest, queries []Query, models []Struct) ([]*plugin.File, error) {
 	t := template.New("queries.zig.gotmpl")
 	t, err := t.Funcs(templateFuncs(t)).
 		ParseFS(templates, "templates/helpers.gotmpl", "templates/queries.zig.gotmpl")
 	if err != nil {
 		return nil, err
 	}
-	var queriesFile bytes.Buffer
-	if err = t.Execute(&queriesFile, map[string]any{
-		"Config":       conf,
-		"SQLCVersion":  req.GetSqlcVersion(),
-		"PGImportName": conf.Backend.ImportName(),
-		"Queries":      queries,
-		"Models":       models,
-		"ModelsFile":   modelsFilename,
-		"EnumsFile":    enumsFilename,
-	}); err != nil {
-		return nil, err
+	// Group queries by their source name
+	sourceQueries := make(map[string][]Query)
+	for _, query := range queries {
+		sourceQueries[query.SourceName] = append(sourceQueries[query.SourceName], query)
 	}
-	return &plugin.File{
-		Name:     queriesFilename,
-		Contents: queriesFile.Bytes(),
-	}, nil
+	var files []*plugin.File
+	for sourceName, queries := range sourceQueries {
+		var queriesFile bytes.Buffer
+		if err = t.Execute(&queriesFile, map[string]any{
+			"Config":       conf,
+			"SQLCVersion":  req.GetSqlcVersion(),
+			"PGImportName": conf.Backend.ImportName(),
+			"Queries":      queries,
+			"Models":       models,
+			"ModelsFile":   modelsFilename,
+			"EnumsFile":    enumsFilename,
+		}); err != nil {
+			return nil, err
+		}
+		files = append(files, &plugin.File{
+			Name:     fmt.Sprintf("%s.zig", sourceName),
+			Contents: queriesFile.Bytes(),
+		})
+	}
+	return files, nil
 }
 
 func getConfig(req *plugin.GenerateRequest) (conf Config, err error) {

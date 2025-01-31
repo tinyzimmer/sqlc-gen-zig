@@ -6,7 +6,7 @@ plugins:
     sha256: {{PLUGIN_SHA256}}
 sql:
 - schema: src/schema/schema.sql
-  queries: src/schema/queries.sql
+  queries: src/schema/queries
   engine: postgresql
   codegen:
   - out: src/gen

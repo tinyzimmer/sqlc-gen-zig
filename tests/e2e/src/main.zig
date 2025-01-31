@@ -4,8 +4,8 @@ const DefaultPrng = std.Random.DefaultPrng;
 
 const pg = @import("pg");
 
-const queries = @import("gen/queries.zig");
-const PoolQuerier = queries.PoolQuerier;
+const UserQueries = @import("gen/users.sql.zig");
+const UsersQuerier = UserQueries.PoolQuerier;
 
 const schema = @embedFile("schema/schema.sql");
 
@@ -17,7 +17,7 @@ test "one field queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const querier = UsersQuerier.init(allocator, test_db.pool);
     try expectError(error.NotFound, querier.getUserIDByEmail("test@example.com"));
 
     try querier.createUser(.{
@@ -40,7 +40,7 @@ test "many field queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const querier = UsersQuerier.init(allocator, test_db.pool);
     const empty_users = try querier.getUserIDsByRole(.admin);
     try expectEqual(0, empty_users.len);
 
@@ -90,7 +90,7 @@ test "one struct queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const querier = UsersQuerier.init(allocator, test_db.pool);
 
     try expectError(error.NotFound, querier.getUser(1));
 
@@ -128,7 +128,7 @@ test "many struct queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const querier = UsersQuerier.init(allocator, test_db.pool);
 
     const empty_users = try querier.getUsers();
     try expectEqual(0, empty_users.len);
@@ -186,7 +186,7 @@ test "special type queries" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const querier = UsersQuerier.init(allocator, test_db.pool);
     const empty = try querier.getUserIDsBySalaryRange(0, 1000);
     try expectEqual(0, empty.len);
 
@@ -243,7 +243,7 @@ test "partial struct returns" {
     var test_db = try TestDB.init(allocator);
     defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, test_db.pool);
+    const querier = UsersQuerier.init(allocator, test_db.pool);
     const empty = try querier.getUserEmails();
     try expectEqual(0, empty.len);
 
