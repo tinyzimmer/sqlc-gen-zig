@@ -70,7 +70,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			if q.Ret.Struct != nil {
 				return fmt.Sprintf("models.%s", q.Ret.Struct.StructName)
 			}
-			return fmt.Sprintf("%s", q.Ret.ZigType)
+			return fmt.Sprintf("%s", q.Ret.Field.ZigType)
 		},
 		"queryFuncArgs": func(q Query) string {
 			var out strings.Builder
@@ -80,7 +80,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 				if arg.Struct != nil {
 					out.WriteString(fmt.Sprintf("%s: %s", arg.Name, arg.Struct.StructName))
 				} else {
-					out.WriteString(fmt.Sprintf("%s: %s", arg.Name, arg.ZigType))
+					out.WriteString(fmt.Sprintf("%s: %s", arg.Name, arg.Field.ZigType))
 				}
 			}
 			return out.String()

@@ -6,6 +6,10 @@ ORDER BY id ASC;
 SELECT * FROM "user"
 WHERE id = $1 LIMIT 1;
 
+-- name: GetUserIDByEmail :one
+SELECT id FROM "user"
+WHERE email = $1 LIMIT 1;
+
 -- name: CreateUser :exec
 INSERT INTO "user" (
     name, 

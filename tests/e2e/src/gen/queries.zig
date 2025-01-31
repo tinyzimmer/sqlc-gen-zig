@@ -88,6 +88,11 @@ pub fn Querier(comptime T: type) type {
                 }
                 break :blk null;
             };
+            errdefer {
+                if (row_ip_address) |cidr| {
+                    self.allocator.free(cidr.address);
+                }
+            }
             const salary_numeric = row.get(?pg.Numeric, 6);
             const row_salary: ?pg.Numeric = blk: {
                 if (salary_numeric) |numeric| {
@@ -101,8 +106,10 @@ pub fn Querier(comptime T: type) type {
                 }
                 break :blk null;
             };
-            if (row_salary) |numeric| {
-                errdefer self.allocator.free(numeric.digits);
+            errdefer {
+                if (row_salary) |numeric| {
+                    self.allocator.free(numeric.digits);
+                }
             }
             const maybe_notes = row.get(?[]const u8, 7);
             const row_notes: ?[]const u8 = blk: {
@@ -111,8 +118,10 @@ pub fn Querier(comptime T: type) type {
                 }
                 break :blk null;
             };
-            if (row_notes) |field| {
-                errdefer self.allocator.free(field);
+            errdefer {
+                if (row_notes) |field| {
+                    self.allocator.free(field);
+                }
             }
             const row_created_at = row.get(i64, 8);
             const row_updated_at = row.get(i64, 9);
@@ -132,6 +141,22 @@ pub fn Querier(comptime T: type) type {
                 .updated_at = row_updated_at,
                 .archived_at = row_archived_at,
             };
+        }
+
+        pub const get_user_id_by_email_sql = 
+            \\SELECT id FROM "user"
+            \\WHERE email = $1 LIMIT 1
+        ;
+
+        pub fn getUserIDByEmail(self: Self, email: []const u8) !i32 {
+            const result = try self.conn.query(get_user_id_by_email_sql, .{
+                email, 
+            });
+            defer result.deinit();
+            const row = try result.next() orelse return error.NotFound;
+
+            const row_id = row.get(i32, 0);
+            return row_id;
         }
 
         pub const get_users_sql = 
@@ -164,6 +189,11 @@ pub fn Querier(comptime T: type) type {
                     }
                     break :blk null;
                 };
+                errdefer {
+                    if (row_ip_address) |cidr| {
+                        self.allocator.free(cidr.address);
+                    }
+                }
                 const salary_numeric = row.get(?pg.Numeric, 6);
                 const row_salary: ?pg.Numeric = blk: {
                     if (salary_numeric) |numeric| {
@@ -177,8 +207,10 @@ pub fn Querier(comptime T: type) type {
                     }
                     break :blk null;
                 };
-                if (row_salary) |numeric| {
-                    errdefer self.allocator.free(numeric.digits);
+                errdefer {
+                    if (row_salary) |numeric| {
+                        self.allocator.free(numeric.digits);
+                    }
                 }
                 const maybe_notes = row.get(?[]const u8, 7);
                 const row_notes: ?[]const u8 = blk: {
@@ -187,8 +219,10 @@ pub fn Querier(comptime T: type) type {
                     }
                     break :blk null;
                 };
-                if (row_notes) |field| {
-                    errdefer self.allocator.free(field);
+                errdefer {
+                    if (row_notes) |field| {
+                        self.allocator.free(field);
+                    }
                 }
                 const row_created_at = row.get(i64, 8);
                 const row_updated_at = row.get(i64, 9);

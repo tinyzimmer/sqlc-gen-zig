@@ -9,7 +9,11 @@ const PoolQuerier = queries.PoolQuerier;
 
 const schema = @embedFile("schema/schema.sql");
 
-test "generated one queries" {
+test "generated one field queries" {}
+
+test "generated many field queries" {}
+
+test "generated one struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -18,21 +22,10 @@ test "generated one queries" {
 
     const allocator = std.testing.allocator;
 
-    const test_db = try newTestDB(allocator);
-    defer allocator.free(test_db);
-    var pool = try pg.Pool.init(allocator, .{ .size = 1, .connect = .{
-        .port = 5432,
-        .host = "127.0.0.1",
-    }, .auth = .{
-        .username = "postgres",
-        .password = "postgres",
-        .database = test_db,
-        .timeout = 10_000,
-    } });
-    defer pool.deinit();
-    _ = try pool.exec(schema, .{});
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, pool);
+    const querier = PoolQuerier.init(allocator, test_db.pool);
 
     try expectError(error.NotFound, querier.getUser(1));
 
@@ -59,7 +52,7 @@ test "generated one queries" {
     try expectEqual(1000.50, user.salary.?.toFloat());
 }
 
-test "generated many queries" {
+test "generated many struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -67,21 +60,10 @@ test "generated many queries" {
 
     const allocator = std.testing.allocator;
 
-    const test_db = try newTestDB(allocator);
-    defer allocator.free(test_db);
-    var pool = try pg.Pool.init(allocator, .{ .size = 1, .connect = .{
-        .port = 5432,
-        .host = "127.0.0.1",
-    }, .auth = .{
-        .username = "postgres",
-        .password = "postgres",
-        .database = test_db,
-        .timeout = 10_000,
-    } });
-    defer pool.deinit();
-    _ = try pool.exec(schema, .{});
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
 
-    const querier = PoolQuerier.init(allocator, pool);
+    const querier = PoolQuerier.init(allocator, test_db.pool);
 
     const empty_users = try querier.getUsers();
     try expectEqual(0, empty_users.len);
@@ -131,30 +113,56 @@ test "generated many queries" {
     }
 }
 
-fn newTestDB(allocator: Allocator) ![]const u8 {
-    var prng = DefaultPrng.init(@as(u64, @bitCast(std.time.milliTimestamp())));
-    var rand = prng.random();
+const TestDB = struct {
+    allocator: Allocator,
+    db_name: []const u8,
+    pool: *pg.Pool,
 
-    var pool = try pg.Pool.init(allocator, .{ .size = 1, .connect = .{
-        .port = 5432,
-        .host = "127.0.0.1",
-    }, .auth = .{
-        .username = "postgres",
-        .password = "postgres",
-        .database = "postgres",
-        .timeout = 10_000,
-    } });
-    defer pool.deinit();
+    fn init(allocator: Allocator) !TestDB {
+        var prng = DefaultPrng.init(@as(u64, @bitCast(std.time.milliTimestamp())));
+        var rand = prng.random();
 
-    var db_name: [16:0]u8 = undefined;
-    const chars = "abcdefghijklmnopqrstuvwxyz";
-    for (0..16) |idx| {
-        db_name[idx] = chars[rand.intRangeLessThan(usize, 0, chars.len)];
+        var pool = try pg.Pool.init(allocator, .{ .size = 1, .connect = .{
+            .port = 5432,
+            .host = "127.0.0.1",
+        }, .auth = .{
+            .username = "postgres",
+            .password = "postgres",
+            .database = "postgres",
+            .timeout = 10_000,
+        } });
+        defer pool.deinit();
+
+        var db_name: [16:0]u8 = undefined;
+        const chars = "abcdefghijklmnopqrstuvwxyz";
+        for (0..16) |idx| {
+            db_name[idx] = chars[rand.intRangeLessThan(usize, 0, chars.len)];
+        }
+
+        const query = try std.fmt.allocPrint(allocator, "CREATE DATABASE {s}", .{db_name[0..]});
+        defer allocator.free(query);
+        _ = try pool.exec(query, .{});
+
+        const temp_db_name = try allocator.dupe(u8, db_name[0..]);
+        var temp_pool = try pg.Pool.init(allocator, .{ .size = 1, .connect = .{
+            .port = 5432,
+            .host = "127.0.0.1",
+        }, .auth = .{
+            .username = "postgres",
+            .password = "postgres",
+            .database = temp_db_name,
+            .timeout = 10_000,
+        } });
+        _ = try temp_pool.exec(schema, .{});
+        return .{
+            .allocator = allocator,
+            .db_name = temp_db_name,
+            .pool = temp_pool,
+        };
     }
 
-    const query = try std.fmt.allocPrint(allocator, "CREATE DATABASE {s}", .{db_name[0..]});
-    defer allocator.free(query);
-    _ = try pool.exec(query, .{});
-
-    return try allocator.dupe(u8, db_name[0..]);
-}
+    fn deinit(self: *TestDB) void {
+        self.pool.deinit();
+        self.allocator.free(self.db_name);
+    }
+};

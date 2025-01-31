@@ -23,10 +23,10 @@ type Query struct {
 }
 
 type QueryValue struct {
-	Emit    bool
-	Name    string
-	Struct  *Struct
-	ZigType string
+	Emit   bool
+	Name   string
+	Struct *Struct
+	Field  *Field
 }
 
 func buildQueries(conf Config, req *plugin.GenerateRequest, structs []Struct) ([]Query, error) {
@@ -57,8 +57,13 @@ func buildQueries(conf Config, req *plugin.GenerateRequest, structs []Struct) ([
 			// Inline the parameters
 			for _, param := range query.GetParams() {
 				gq.Args = append(gq.Args, QueryValue{
-					Name:    paramName(param),
-					ZigType: zigDataType(req, param.GetColumn()),
+					Name: paramName(param),
+					Field: &Field{
+						Name:     paramName(param),
+						Array:    param.GetColumn().IsArray,
+						Nullable: !param.GetColumn().NotNull,
+						ZigType:  zigDataType(req, param.GetColumn()),
+					},
 				})
 			}
 		} else {
@@ -76,8 +81,13 @@ func buildQueries(conf Config, req *plugin.GenerateRequest, structs []Struct) ([
 			if len(query.GetColumns()) == 1 {
 				col := query.GetColumns()[0]
 				gq.Ret = &QueryValue{
-					Name:    columnName(col, 0),
-					ZigType: zigDataType(req, query.GetColumns()[0]),
+					Name: columnName(col, 0),
+					Field: &Field{
+						Name:     columnName(col, 0),
+						Array:    col.IsArray,
+						Nullable: !col.NotNull,
+						ZigType:  zigDataType(req, query.GetColumns()[0]),
+					},
 				}
 			} else {
 				var st *Struct

@@ -12,17 +12,19 @@ type Field struct {
 	ZigType  string
 	Nullable bool
 	Array    bool
+	Index    int
 }
 
 func buildFields(_ Config, req *plugin.GenerateRequest, columns []*plugin.Column) []Field {
 	var fields []Field
-	for _, column := range columns {
+	for idx, column := range columns {
 		fields = append(fields, Field{
 			Name:     column.GetName(),
 			Comment:  column.GetComment(),
 			ZigType:  zigDataType(req, column),
 			Nullable: !column.GetNotNull(),
 			Array:    column.GetIsArray(),
+			Index:    idx,
 		})
 	}
 	return fields
