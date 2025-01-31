@@ -1,3 +1,5 @@
 .vscode/
 bin/
 dist/
+**/zig-out/
+**/.zig-cache/
