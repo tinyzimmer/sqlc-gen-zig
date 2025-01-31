@@ -2,3 +2,4 @@
 # **/gen/
 **/zig-out/
 **/.zig-cache/
+**/src/gen/
