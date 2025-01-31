@@ -31,7 +31,7 @@ while (try result.next()) |row| {
         .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
         {{- end }}
     });
-    {{- else -}}
+    {{- else }}
     try out.append(row_{{ .Ret.Field.Name }});
     {{- end }}
 }
@@ -41,10 +41,10 @@ return try out.toOwnedSlice();
 {{- define "scanRow" -}}
 {{- if .Ret.Struct }}
 {{- range $idx, $field := .Ret.Struct.Fields }}
-{{- include "scanValue" . }}
+{{- include "scanValue" . -}}
 {{- end }}
 {{- else }}
-{{- include "scanValue" .Ret.Field }}
+{{- include "scanValue" .Ret.Field -}}
 {{- end -}}
 {{- end -}}
 
@@ -117,10 +117,10 @@ errdefer {
         self.allocator.free(field);
     }
 }
-{{- else }}
+{{- else -}}
 const row_{{ .Name }} = try self.allocator.dupe({{ allocType . }}, row.get({{ fieldScanType . }}, {{ .Index }}));
 errdefer self.allocator.free(row_{{ .Name }});
-{{- end }}
+{{- end -}}
 {{- end -}}
 
 {{- define "scanPGCidr" -}}
@@ -141,14 +141,14 @@ errdefer {
         self.allocator.free(cidr.address);
     }
 }
-{{- else }}
+{{- else -}}
 const row_{{ .Name }} = pg.Cidr{
     .address = try self.allocator.dupe(u8, {{ .Name }}_cidr.address),
     .netmask = {{ .Name }}_cidr.netmask,
     .family = {{ .Name }}_cidr.family,
 };
 errdefer self.allocator.free(row_{{ .Name }}.address);
-{{- end }}
+{{- end -}}
 {{- end -}}
 
 {{- define "scanPGNumeric" -}}
@@ -171,7 +171,7 @@ errdefer {
         self.allocator.free(numeric.digits);
     }
 }
-{{- else }}
+{{- else -}}
 const row_{{ .Name }} = pg.Numeric{
     .number_of_digits = {{ .Name }}_numeric.number_of_digits,
     .weight = {{ .Name }}_numeric.weight,
@@ -180,5 +180,5 @@ const row_{{ .Name }} = pg.Numeric{
     .digits = try self.allocator.dupe(u8, {{ .Name }}_numeric.digits),
 };
 errdefer self.allocator.free(row_{{ .Name }}.digits);
-{{- end }}
+{{- end -}}
 {{- end -}}
