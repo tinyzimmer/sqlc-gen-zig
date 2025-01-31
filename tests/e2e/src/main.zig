@@ -179,10 +179,7 @@ test "generated many struct queries" {
 }
 
 test "generated special type queries" {
-    // const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
-    // const expectEqualSlices = std.testing.expectEqualSlices;
-    // const expectEqualStrings = std.testing.expectEqualStrings;
 
     const allocator = std.testing.allocator;
 
