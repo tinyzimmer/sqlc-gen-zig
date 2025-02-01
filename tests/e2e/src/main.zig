@@ -1,9 +1,9 @@
-const ContextTests = @import("context.zig");
-const ManagedTests = @import("managed.zig");
-const UnmanagedTests = @import("unmanaged.zig");
+const std = @import("std");
+
+pub const ContextTests = @import("context.zig");
+pub const ManagedTests = @import("managed.zig");
+pub const UnmanagedTests = @import("unmanaged.zig");
 
 test {
-    _ = ManagedTests;
-    _ = UnmanagedTests;
-    _ = ContextTests;
+    std.testing.refAllDecls(@This());
 }
