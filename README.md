@@ -47,7 +47,7 @@ unmanaged_allocations: false
 # wants to execute queries with zero additional allocations. Context is a struct
 # with a `handle` method taking the return value of the query method. See the
 # e2e tests for more examples for now.
-# use_context: false
+use_context: false
 ```
 
 ## Development
