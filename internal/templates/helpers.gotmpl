@@ -6,14 +6,14 @@ const row = try result.next() orelse return error.NotFound;
 {{- range $idx, $field := .Ret.Struct.Fields }}
 {{ include "scanNoAlloc" . }}
 {{- end }}
-cb(.{
+try ctx.handle(.{
     {{- range $idx, $field := .Ret.Struct.Fields }}
     .{{ $field.Name }} = row_{{ $field.Name }},
     {{- end }}
 });
 {{- else }}
 {{ include "scanNoAlloc" .Ret.Field }}
-cb(row_{{ .Ret.Field.Name }});
+try ctx.handle(row_{{ .Ret.Field.Name }});
 {{- end }}
 {{- end -}}
 
@@ -24,14 +24,14 @@ while (try result.next()) |row| {
     {{- range $idx, $field := .Ret.Struct.Fields }}
     {{ include "scanNoAlloc" . }}
     {{- end }}
-    cb(.{
+    try ctx.handle(.{
         {{- range $idx, $field := .Ret.Struct.Fields }}
         .{{ $field.Name }} = row_{{ $field.Name }},
         {{- end }}
     });
     {{- else }}
     {{ include "scanNoAlloc" .Ret.Field }}
-    cb(row_{{ .Ret.Field.Name }});
+    try ctx.handle(row_{{ .Ret.Field.Name }});
     {{- end }}
 }
 {{- end -}}

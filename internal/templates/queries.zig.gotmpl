@@ -97,7 +97,8 @@ pub fn Querier(comptime T: type) type {
         {{- end }}
 
         {{- if $conf.UseCallbacks }}
-        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, comptime cb: (fn (val: {{ queryReturnType $query }}) anyerror!void){{ end }}) !void {
+        {{/* pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, comptime cb: (fn (val: {{ queryReturnType $query }}) anyerror!void){{ end }}) !void { */}}
+        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, ctx: anytype{{ end }}) !void {
         {{- else }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
         {{- end }}
