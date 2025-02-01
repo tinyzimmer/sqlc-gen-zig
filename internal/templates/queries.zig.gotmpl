@@ -20,13 +20,13 @@ const max_enum_slice_len = 512;
 pub fn Querier(comptime T: type) type {
     return struct {
         const Self = @This();
-        {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseCallbacks) }}
+        {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseContext) }}
         allocator: Allocator,
         {{- end }}
         conn: T,
 
-        pub fn init({{ if and (not $conf.UnmanagedAllocations) (not $conf.UseCallbacks) }}allocator: Allocator, {{ end }}conn: T) Self {
-            return .{ {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseCallbacks) }}.allocator = allocator, {{ end }}.conn = conn };
+        pub fn init({{ if and (not $conf.UnmanagedAllocations) (not $conf.UseContext) }}allocator: Allocator, {{ end }}conn: T) Self {
+            return .{ {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseContext) }}.allocator = allocator, {{ end }}.conn = conn };
         }
         {{ range $query := .Queries }}
         {{ if $conf.PublicQueryStings }}pub {{ end }}const {{ $query.ConstantName }} = 
@@ -52,19 +52,19 @@ pub fn Querier(comptime T: type) type {
 
         {{- if and (and $query.Ret $query.Ret.Struct) $query.Ret.Emit }}
         pub const {{ $query.Ret.Struct.StructName }} = struct {
-            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseCallbacks) }}
+            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseContext) }}
             __allocator: Allocator,
             {{- "\n" -}}
             {{- end }}
             {{- range $field := $query.Ret.Struct.Fields }}
-            {{- if $conf.UseCallbacks }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}pg.Iterator({{ end }}{{ if isEnum $field }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
+            {{- if $conf.UseContext }}
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}*pg.Iterator({{ end }}{{ if isEnum $field }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
             {{- else }}
             {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
             {{- end }}
             {{- end }}
 
-            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseCallbacks) }}
+            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseContext) }}
             {{- "\n" }}
             pub fn deinit(self: *const {{ $query.Ret.Struct.StructName }}) void {
                 {{- range $field := $query.Ret.Struct.Fields }}
@@ -96,13 +96,13 @@ pub fn Querier(comptime T: type) type {
         {{- "\n" -}}
         {{- end }}
 
-        {{- if $conf.UseCallbacks }}
+        {{- if $conf.UseContext }}
         {{/* pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, comptime cb: (fn (val: {{ queryReturnType $query }}) anyerror!void){{ end }}) !void { */}}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, ctx: anytype{{ end }}) !void {
         {{- else }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
         {{- end }}
-            {{- if and (and $query.RequiresAllocations (not $conf.UnmanagedAllocations)) (not $conf.UseCallbacks) }}
+            {{- if and (and $query.RequiresAllocations (not $conf.UnmanagedAllocations)) (not $conf.UseContext) }}
             const allocator = self.allocator;
             {{- end }}
             {{- if hasEnumArrayArgs $query }}
@@ -153,7 +153,7 @@ pub fn Querier(comptime T: type) type {
             defer result.deinit();
             {{- end -}}
 
-            {{- if $conf.UseCallbacks }}
+            {{- if $conf.UseContext }}
             {{- if isManyQuery $query }}
             {{- "\n" }}
             {{- include "scanManyQueryCallback" $query | indent 12 }}

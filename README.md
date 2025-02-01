@@ -43,9 +43,11 @@ public_query_strings: false
 # Set to true to not have the Querier store an internal allocator. Each query
 # method will take an allocator as a parameter instead.
 unmanaged_allocations: false
-# Use callbacks as parameters to generated methods. This is useful for code that
-# wants to execute queries with zero additional allocations.
-# use_callbacks: false
+# Use context as parameters to generated methods. This is useful for code that
+# wants to execute queries with zero additional allocations. Context is a struct
+# with a `handle` method taking the return value of the query method. See the
+# e2e tests for more examples for now.
+# use_context: false
 ```
 
 ## Development

@@ -16,15 +16,18 @@ WHERE email = $1 LIMIT 1;
 
 -- name: GetUserIDsByRole :many
 SELECT id FROM users
-WHERE role = $1;
+WHERE role = $1
+ORDER BY id ASC;
 
 -- name: GetUserIDsBySalaryRange :many
 SELECT id FROM users
-WHERE salary >= $1 AND salary <= $2;
+WHERE salary >= $1 AND salary <= $2
+ORDER BY id ASC;
 
 -- name: GetUserIDsByIPAddress :many
 SELECT id FROM users
-WHERE ip_address = $1;
+WHERE ip_address = $1
+ORDER BY id ASC;
 
 -- name: CreateUser :exec
 INSERT INTO users (

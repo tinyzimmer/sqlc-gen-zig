@@ -8,12 +8,12 @@ const row = try result.next() orelse return error.NotFound;
 {{- end }}
 try ctx.handle(.{
     {{- range $idx, $field := .Ret.Struct.Fields }}
-    .{{ $field.Name }} = row_{{ $field.Name }},
+    .{{ $field.Name }} = {{ if $field.Array }}&{{ end }}row_{{ $field.Name }},
     {{- end }}
 });
 {{- else }}
 {{ include "scanNoAlloc" .Ret.Field }}
-try ctx.handle(row_{{ .Ret.Field.Name }});
+try ctx.handle({{ if .Ret.Field.Array }}&{{ end }}row_{{ .Ret.Field.Name }});
 {{- end }}
 {{- end -}}
 
@@ -26,12 +26,12 @@ while (try result.next()) |row| {
     {{- end }}
     try ctx.handle(.{
         {{- range $idx, $field := .Ret.Struct.Fields }}
-        .{{ $field.Name }} = row_{{ $field.Name }},
+        .{{ $field.Name }} = {{ if $field.Array }}&{{ end }}row_{{ $field.Name }},
         {{- end }}
     });
     {{- else }}
     {{ include "scanNoAlloc" .Ret.Field }}
-    try ctx.handle(row_{{ .Ret.Field.Name }});
+    try ctx.handle({{ if .Ret.Field.Array }}&{{ end }}row_{{ .Ret.Field.Name }});
     {{- end }}
 }
 {{- end -}}
@@ -140,7 +140,7 @@ while (row_{{ .Name }}_iter.next()) |item| {
 {{/* Scans a field object without duplicating the value */}}
 {{- define "scanNoAlloc" -}}
 {{- if .Array -}}
-const row_{{ .Name }} = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
+var row_{{ .Name }} = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
 {{- else -}}
 const row_{{ .Name }} = row.get({{ fieldScanType . }}, {{ .Index }});
 {{- end -}}

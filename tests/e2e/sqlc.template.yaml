@@ -16,7 +16,7 @@ sql:
     plugin: zig
     options:
       unmanaged_allocations: true
-  - out: src/gen/callbacks
+  - out: src/gen/context
     plugin: zig
     options:
-      use_callbacks: true
+      use_context: true

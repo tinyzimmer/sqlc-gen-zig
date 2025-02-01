@@ -9,7 +9,7 @@ type Config struct {
 	QueryParameterLimit         int      `json:"query_parameter_limit"`
 	PublicQueryStings           bool     `json:"public_query_strings"`
 	UnmanagedAllocations        bool     `json:"unmanaged_allocations"`
-	UseCallbacks                bool     `json:"use_callbacks"`
+	UseContext                  bool     `json:"use_context"`
 }
 
 func (c *Config) Default() {
