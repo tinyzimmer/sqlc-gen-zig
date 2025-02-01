@@ -107,15 +107,23 @@ func templateFuncs(t *template.Template) template.FuncMap {
 						if i != 0 {
 							out.WriteString(fmt.Sprintf(",\n%s", strings.Repeat(" ", indent)))
 						}
-						if strings.HasPrefix(field.ZigType, "enums.") {
-							out.WriteString(fmt.Sprintf("@tagName(%s.%s)", name, field.Name))
+						if strings.HasPrefix(field.ZigType, enumsTypePrefix) {
+							if field.Array {
+								out.WriteString(fmt.Sprintf("%s_arr.items", field.Name))
+							} else {
+								out.WriteString(fmt.Sprintf("@tagName(%s.%s)", name, field.Name))
+							}
 						} else {
 							out.WriteString(fmt.Sprintf("%s.%s", name, field.Name))
 						}
 					}
 				} else {
-					if strings.HasPrefix(arg.Field.ZigType, "enums.") {
-						out.WriteString(fmt.Sprintf("@tagName(%s)", name))
+					if strings.HasPrefix(arg.Field.ZigType, enumsTypePrefix) {
+						if arg.Field.Array {
+							out.WriteString(fmt.Sprintf("%s_arr.items", name))
+						} else {
+							out.WriteString(fmt.Sprintf("@tagName(%s)", name))
+						}
 					} else {
 						out.WriteString(name)
 					}
@@ -130,7 +138,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		},
 		"fieldScanType": func(f Field) string {
 			typ := f.ZigType
-			if strings.HasPrefix(typ, "enums.") {
+			if strings.HasPrefix(typ, enumsTypePrefix) {
 				return "[]const u8"
 			}
 			if f.Nullable {
@@ -160,7 +168,23 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		"hasEnums": func(models []Struct) bool {
 			for _, model := range models {
 				for _, field := range model.Fields {
-					if strings.HasPrefix(field.ZigType, "enums.") {
+					if strings.HasPrefix(field.ZigType, enumsTypePrefix) {
+						return true
+					}
+				}
+			}
+			return false
+		},
+		"hasEnumArrayArgs": func(query Query) bool {
+			for _, arg := range query.Args {
+				if arg.Struct != nil {
+					for _, field := range arg.Struct.Fields {
+						if strings.HasPrefix(field.ZigType, enumsTypePrefix) && field.Array {
+							return true
+						}
+					}
+				} else {
+					if strings.HasPrefix(arg.Field.ZigType, enumsTypePrefix) && arg.Field.Array {
 						return true
 					}
 				}
@@ -168,7 +192,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			return false
 		},
 		"isEnum": func(field Field) bool {
-			return strings.HasPrefix(field.ZigType, "enums.")
+			return strings.HasPrefix(field.ZigType, enumsTypePrefix)
 		},
 		"isNonScalar": func(field Field) bool {
 			return isNonScalarBaseType(field.ZigType)

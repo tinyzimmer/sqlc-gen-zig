@@ -1,3 +1,41 @@
+{{/* Scans a single row Query object without allocations and invokes a callback */}}
+{{- define "scanOneQueryCallback" -}}
+const row = try result.next() orelse return error.NotFound;
+{{- "\n" }}
+{{- if .Ret.Struct }}
+{{- range $idx, $field := .Ret.Struct.Fields }}
+{{ include "scanNoAlloc" . }}
+{{- end }}
+cb(.{
+    {{- range $idx, $field := .Ret.Struct.Fields }}
+    .{{ $field.Name }} = row_{{ $field.Name }},
+    {{- end }}
+});
+{{- else }}
+{{ include "scanNoAlloc" .Ret.Field }}
+cb(row_{{ .Ret.Field.Name }});
+{{- end }}
+{{- end -}}
+
+{{/* Scans a many row Query object without allocations and invokes a callback */}}
+{{- define "scanManyQueryCallback" -}}
+while (try result.next()) |row| {
+    {{- if .Ret.Struct }}
+    {{- range $idx, $field := .Ret.Struct.Fields }}
+    {{ include "scanNoAlloc" . }}
+    {{- end }}
+    cb(.{
+        {{- range $idx, $field := .Ret.Struct.Fields }}
+        .{{ $field.Name }} = row_{{ $field.Name }},
+        {{- end }}
+    });
+    {{- else }}
+    {{ include "scanNoAlloc" .Ret.Field }}
+    cb(row_{{ .Ret.Field.Name }});
+    {{- end }}
+}
+{{- end -}}
+
 {{/* Scans a single row Query object and returns the value */}}
 {{- define "scanOneQuery" -}}
 const row = try result.next() orelse return error.NotFound;
@@ -95,13 +133,17 @@ while (row_{{ .Name }}_iter.next()) |item| {
 {{- else if isNonScalar . }}
 {{ include "scanNonScalar" . }}
 {{- else }}
-{{ include "scanScalar" . }}
+{{ include "scanNoAlloc" . }}
 {{- end }}
 {{- end }}
 
-{{/* Scans a scalar Field object */}}
-{{- define "scanScalar" -}}
+{{/* Scans a field object without duplicating the value */}}
+{{- define "scanNoAlloc" -}}
+{{- if .Array -}}
+const row_{{ .Name }} = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
+{{- else -}}
 const row_{{ .Name }} = row.get({{ fieldScanType . }}, {{ .Index }});
+{{- end -}}
 {{- end -}}
 
 {{/* Scans an enum Field object */}}

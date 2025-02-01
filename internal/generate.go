@@ -57,8 +57,9 @@ func validateRequest(req *plugin.GenerateRequest) error {
 }
 
 const (
-	modelsFilename = "models.zig"
-	enumsFilename  = "enums.zig"
+	modelsFilename  = "models.zig"
+	enumsFilename   = "enums.zig"
+	enumsTypePrefix = "enums."
 )
 
 func renderSourceFiles(conf Config, req *plugin.GenerateRequest, models []Struct, enums []Enum, queries []Query) ([]*plugin.File, error) {

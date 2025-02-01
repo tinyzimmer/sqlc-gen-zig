@@ -55,7 +55,7 @@ func enumType(catalog *plugin.Catalog, dbType string) string {
 					}
 					return modelName(fmt.Sprintf("%s_%s", schema.GetName(), enum.GetName()))
 				}()
-				return fmt.Sprintf("enums.%s", mname)
+				return fmt.Sprintf("%s%s", enumsTypePrefix, mname)
 			}
 		}
 	}

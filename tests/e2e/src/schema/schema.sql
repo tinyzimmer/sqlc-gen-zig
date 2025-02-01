@@ -14,10 +14,13 @@ CREATE TABLE users (
     archived_at TIMESTAMP
 );
 
+CREATE TYPE product AS ENUM ('laptop', 'desktop', 'mobile', 'tablet');
+
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
     order_date TIMESTAMP DEFAULT NOW() NOT NULL,
     item_ids INTEGER[] NOT NULL,
+    products product[] NOT NULL,
     item_quantities NUMERIC(10, 2)[] NOT NULL,
     shipping_addresses TEXT[] NOT NULL,
     ip_addresses INET[] NOT NULL,

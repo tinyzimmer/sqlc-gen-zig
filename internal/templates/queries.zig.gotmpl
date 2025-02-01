@@ -5,25 +5,28 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const pg = @import("{{ .PGImportName }}");
-
-const models = @import("{{ .ModelsFile }}");
-{{- if hasEnums .Models }}
+{{ if hasEnums .Models }}
 const enums = @import("{{ .EnumsFile }}");
+{{- end }}
+{{- if .Models }}
+const models = @import("{{ .ModelsFile }}");
 {{- end }}
 
 pub const ConnQuerier = Querier(*pg.Conn);
 pub const PoolQuerier = Querier(*pg.Pool);
 
+const max_enum_slice_len = 512;
+
 pub fn Querier(comptime T: type) type {
     return struct {
         const Self = @This();
-        {{ if not $conf.UnmanagedAllocations }}
+        {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseCallbacks) }}
         allocator: Allocator,
         {{- end }}
         conn: T,
 
-        pub fn init({{ if not $conf.UnmanagedAllocations }}allocator: Allocator, {{ end }}conn: T) Self {
-            return .{ {{ if not $conf.UnmanagedAllocations }}.allocator = allocator, {{ end }}.conn = conn };
+        pub fn init({{ if and (not $conf.UnmanagedAllocations) (not $conf.UseCallbacks) }}allocator: Allocator, {{ end }}conn: T) Self {
+            return .{ {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseCallbacks) }}.allocator = allocator, {{ end }}.conn = conn };
         }
         {{ range $query := .Queries }}
         {{ if $conf.PublicQueryStings }}pub {{ end }}const {{ $query.ConstantName }} = 
@@ -49,15 +52,19 @@ pub fn Querier(comptime T: type) type {
 
         {{- if and (and $query.Ret $query.Ret.Struct) $query.Ret.Emit }}
         pub const {{ $query.Ret.Struct.StructName }} = struct {
-            {{- if hasNonScalarFields $query.Ret.Struct }}
+            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseCallbacks) }}
             __allocator: Allocator,
             {{- "\n" -}}
             {{- end }}
             {{- range $field := $query.Ret.Struct.Fields }}
+            {{- if $conf.UseCallbacks }}
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}pg.Iterator({{ end }}{{ if isEnum $field }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
+            {{- else }}
             {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
             {{- end }}
+            {{- end }}
 
-            {{- if hasNonScalarFields $query.Ret.Struct }}
+            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseCallbacks) }}
             {{- "\n" }}
             pub fn deinit(self: *const {{ $query.Ret.Struct.StructName }}) void {
                 {{- range $field := $query.Ret.Struct.Fields }}
@@ -94,8 +101,43 @@ pub fn Querier(comptime T: type) type {
         {{- else }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
         {{- end }}
-            {{- if and $query.RequiresAllocations (not $conf.UnmanagedAllocations) }}
+            {{- if and (and $query.RequiresAllocations (not $conf.UnmanagedAllocations)) (not $conf.UseCallbacks) }}
             const allocator = self.allocator;
+            {{- end }}
+            {{- if hasEnumArrayArgs $query }}
+            {{- range $arg := $query.Args }}
+            {{- if $arg.Struct }}
+            {{- range $field := $arg.Struct.Fields }}
+            {{- if and (isEnum $field) $field.Array }}
+            var {{ $field.Name }}_buf: [max_enum_slice_len]u8 = undefined;
+            var {{ $field.Name }}_alloc = std.heap.FixedBufferAllocator.init(&{{ $field.Name }}_buf);
+            var {{ $field.Name }}_arr = std.ArrayList(u8).init({{ $field.Name }}_alloc.allocator());
+            var {{ $field.Name }}_writer = {{ $field.Name }}_arr.writer();
+            _ = try {{ $field.Name }}_writer.writeAll("{");
+            for ({{ $arg.Name }}.{{ $field.Name }}, 0..) |item, idx| {
+                _ = try {{ $field.Name }}_writer.writeAll(@tagName(item));
+                if ((idx + 1) < {{ $arg.Name }}.{{ $field.Name }}.len) {
+                    _ = try {{ $field.Name }}_writer.writeAll(", ");
+                }
+            }
+             _ = try {{ $field.Name }}_writer.writeAll("}");
+            {{- end }}
+            {{- end }}
+            {{- else if $arg.Field }}
+            var {{ $arg.Name }}_buf: [max_enum_slice_len]u8 = undefined;
+            var {{ $arg.Name }}_alloc = std.heap.FixedBufferAllocator.init(&{{ $arg.Name }}_buf);
+            var {{ $arg.Name }}_arr = std.ArrayList(u8).init({{ $arg.Name }}_alloc.allocator());
+            var {{ $arg.Name }}_writer = {{ $arg.Name }}_arr.writer();
+            _ = try {{ $arg.Name }}_writer.writeAll("{");
+            for ({{ $arg.Name }}, 0..) |item, idx| {
+                _ = try {{ $arg.Name }}_writer.writeAll(@tagName(item));
+                if ((idx + 1) < {{ $arg.Name }}.len) {
+                    _ = try {{ $arg.Name }}_writer.writeAll(", ");
+                }
+            }
+             _ = try {{ $arg.Name }}_writer.writeAll("}");
+            {{- end }}
+            {{- end }}
             {{- end }}
             {{- if isExecQuery $query }}
             _ = try self.conn.exec({{ $query.ConstantName }}, .{ {{- if not $query.Args -}} });{{- else }}
@@ -110,12 +152,22 @@ pub fn Querier(comptime T: type) type {
             defer result.deinit();
             {{- end -}}
 
+            {{- if $conf.UseCallbacks }}
+            {{- if isManyQuery $query }}
+            {{- "\n" }}
+            {{- include "scanManyQueryCallback" $query | indent 12 }}
+            {{- else if isOneQuery $query }}
+            {{- "\n" }}
+            {{- include "scanOneQueryCallback" $query | indent 12 }}
+            {{- end }}
+            {{- else }}
             {{- if isManyQuery $query }}
             {{- "\n" }}
             {{- include "scanManyQuery" $query | indent 12 }}
             {{- else if isOneQuery $query }}
             {{- "\n" }}
             {{- include "scanOneQuery" $query | indent 12 }}
+            {{- end }}
             {{- end }}
         }
         {{- "\n" -}}

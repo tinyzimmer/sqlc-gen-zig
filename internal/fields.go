@@ -18,8 +18,12 @@ type Field struct {
 func buildFields(_ Config, req *plugin.GenerateRequest, columns []*plugin.Column) []Field {
 	var fields []Field
 	for idx, column := range columns {
+		name := column.GetName()
+		if name == "" {
+			name = fmt.Sprintf("column_%d", idx)
+		}
 		fields = append(fields, Field{
-			Name:     column.GetName(),
+			Name:     name,
 			Comment:  column.GetComment(),
 			ZigType:  zigDataType(req, column),
 			Nullable: !column.GetNotNull(),

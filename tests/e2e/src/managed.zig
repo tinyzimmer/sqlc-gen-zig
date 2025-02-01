@@ -1,6 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+const enums = @import("gen/managed/enums.zig");
 const OrderQueries = @import("gen/managed/orders.sql.zig");
 const OrderQuerier = OrderQueries.PoolQuerier;
 const UserQueries = @import("gen/managed/users.sql.zig");
@@ -304,6 +305,7 @@ test "managed - array types" {
     const item_quantities: []const f64 = &.{ 1.5, 2.5, 3.5 };
     const shipping_addresses: []const []const u8 = &.{ "address1", "address2", "address3" };
     const ip_addresses: []const []const u8 = &.{ "192.168.1.1", "172.16.0.1", "10.0.0.1" };
+    const products = &[_]enums.Product{ .laptop, .desktop };
 
     try querier.createOrder(.{
         .order_date = std.time.milliTimestamp(),
@@ -311,6 +313,7 @@ test "managed - array types" {
         .item_quantities = @constCast(item_quantities),
         .shipping_addresses = @constCast(shipping_addresses),
         .ip_addresses = @constCast(ip_addresses),
+        .products = @constCast(products),
         .total_amount = 1000.50,
     });
 
@@ -344,4 +347,7 @@ test "managed - array types" {
     try expectEqualStrings(&.{ 192, 168, 1, 1 }, o.ip_addresses[0].address);
     try expectEqualStrings(&.{ 172, 16, 0, 1 }, o.ip_addresses[1].address);
     try expectEqualStrings(&.{ 10, 0, 0, 1 }, o.ip_addresses[2].address);
+    try expectEqual(2, o.products.len);
+    try expectEqual(.laptop, o.products[0]);
+    try expectEqual(.desktop, o.products[1]);
 }

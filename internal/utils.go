@@ -25,7 +25,7 @@ func hasNonScalarFields(s Struct) bool {
 }
 
 func isNonScalarBaseType(t string) bool {
-	if strings.HasPrefix(t, "enums.") {
+	if strings.HasPrefix(t, enumsTypePrefix) {
 		return false
 	}
 	switch t {
