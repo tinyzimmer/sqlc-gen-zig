@@ -15,8 +15,8 @@ version: "2"
 plugins:
   - name: zig
     wasm:
-      url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/v0.0.6/sqlc-gen-zig.wasm
-      sha256: e56c08768e411a7e8bee58ef8697cef73a37d917f84065248662bad89d1170e7
+      url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/v0.0.7/sqlc-gen-zig.wasm
+      sha256: 9752fb1a2f1143780204adf8d53ef6ec1ac700563b3dc07a96dfa8bb0f9b8990
 sql:
   - schema: schema.sql
     queries: queries.sql
