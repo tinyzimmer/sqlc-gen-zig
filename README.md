@@ -5,7 +5,7 @@ A Zig code generator for [sqlc](https://sqlc.dev/).
 ## Usage
 
 Head over to the [releases](https://github.com/tinyzimmer/sqlc-gen-zig/releases/latest) for instructions on how to configure your `sqlc.yaml`.
-An example project can be found in the [examples/](examples/) directory.
+Example projects can be found in the [examples/](examples/) directory.
 
 ### Configuration
 
@@ -15,8 +15,8 @@ version: "2"
 plugins:
   - name: zig
     wasm:
-      url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/v0.0.7/sqlc-gen-zig.wasm
-      sha256: 9752fb1a2f1143780204adf8d53ef6ec1ac700563b3dc07a96dfa8bb0f9b8990
+      url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/v0.0.8/sqlc-gen-zig.wasm
+      sha256: dab1e339bc52ab38a7614953f35a0946ca754331034420fe52a7d5c6e4bd6440
 sql:
   - schema: schema.sql
     queries: queries.sql
@@ -46,11 +46,11 @@ unmanaged_allocations: false
 # Use context as parameters to generated methods. This is useful for code that
 # wants to execute queries with zero additional allocations. Context is a struct
 # with a `handle` method taking the return value of the query method. See the
-# e2e tests for more examples for now.
+# e2e/src/context.zig tests for some examples for now.
 use_context: false
 ```
 
 ## Development
 
 The code generator is written in Go and uses the `sqlc-plugin-sdk`.
-An end-to-end test can be run with `make e2e`.
+The end-to-end tests can be run with `make e2e`.
