@@ -12,6 +12,30 @@ func isInternalSchema(schema string) bool {
 	return schema == "pg_catalog" || schema == "information_schema"
 }
 
+func hasNonScalarFields(s Struct) bool {
+	for _, f := range s.Fields {
+		if f.Array {
+			return true
+		}
+		if isNonScalarBaseType(f.ZigType) {
+			return true
+		}
+	}
+	return false
+}
+
+func isNonScalarBaseType(t string) bool {
+	if strings.HasPrefix(t, "enums.") {
+		return false
+	}
+	switch t {
+	case "bool", "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "char", "void":
+		return false
+	default:
+		return true
+	}
+}
+
 func modelName(name string) string {
 	caser := cases.Title(language.English)
 	var out string

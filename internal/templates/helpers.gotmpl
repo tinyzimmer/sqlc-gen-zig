@@ -1,3 +1,4 @@
+{{/* Scans a single row Query object and returns the value */}}
 {{- define "scanOneQuery" -}}
 const row = try result.next() orelse return error.NotFound;
 {{- "\n" }}
@@ -17,6 +18,7 @@ return row_{{ .Ret.Field.Name }};
 {{- end }}
 {{- end -}}
 
+{{/* Scans a many row Query object and returns the value as an owned slice */}}
 {{- define "scanManyQuery" -}}
 var out = std.ArrayList({{ queryReturnType . }}).init(self.allocator);
 defer out.deinit();
@@ -38,6 +40,7 @@ while (try result.next()) |row| {
 return try out.toOwnedSlice();
 {{- end -}}
 
+{{/* Scans a single row in a Query */}}
 {{- define "scanRow" -}}
 {{- if .Ret.Struct }}
 {{- range $idx, $field := .Ret.Struct.Fields }}
@@ -48,6 +51,7 @@ return try out.toOwnedSlice();
 {{- end -}}
 {{- end -}}
 
+{{/* Scans a single Field object from a query */}}
 {{- define "scanValue" -}}
 {{- if .Array }}
 var row_{{ .Name }} = std.ArrayList({{ .ZigType }}).init(self.allocator);
@@ -95,14 +99,17 @@ while (row_{{ .Name }}_iter.next()) |item| {
 {{- end }}
 {{- end }}
 
+{{/* Scans a scalar Field object */}}
 {{- define "scanScalar" -}}
 const row_{{ .Name }} = row.get({{ fieldScanType . }}, {{ .Index }});
 {{- end -}}
 
+{{/* Scans an enum Field object */}}
 {{- define "scanEnum" -}}
 const row_{{ .Name }} = std.meta.stringToEnum({{ .ZigType }}, row.get([]const u8, {{ .Index }})){{ if not .Nullable }} orelse unreachable{{ end }};
 {{- end -}}
 
+{{/* Scans a non-scalar Field object */}}
 {{- define "scanNonScalar" -}}
 {{- if .Nullable }}
 const maybe_{{ .Name }} = row.get(?{{ .ZigType }}, {{ .Index }});
@@ -123,6 +130,7 @@ errdefer self.allocator.free(row_{{ .Name }});
 {{- end -}}
 {{- end -}}
 
+{{/* Scans a pg.Cidr Field object */}}
 {{- define "scanPGCidr" -}}
 const {{ .Name }}_cidr = row.get({{ if .Nullable }}?{{ end }}pg.Cidr, {{ .Index }});
 {{- if .Nullable }}
@@ -151,6 +159,7 @@ errdefer self.allocator.free(row_{{ .Name }}.address);
 {{- end -}}
 {{- end -}}
 
+{{/* Scans a pg.Numeric Field object */}}
 {{- define "scanPGNumeric" -}}
 const {{ .Name }}_numeric = row.get({{ if .Nullable }}?{{ end }}pg.Numeric, {{ .Index }});
 {{- if .Nullable }}

@@ -44,6 +44,16 @@ func (q *Query) ArgNames() []string {
 	return names
 }
 
+func (q *Query) RequiresAllocations() bool {
+	if q.Ret == nil {
+		return false
+	}
+	if q.Ret.Field != nil {
+		return q.Ret.Field.Array || isNonScalarBaseType(q.Ret.Field.ZigType)
+	}
+	return hasNonScalarFields(*q.Ret.Struct)
+}
+
 type QueryValue struct {
 	Emit   bool
 	Name   string

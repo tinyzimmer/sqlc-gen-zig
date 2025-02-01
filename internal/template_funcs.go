@@ -33,21 +33,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			return out.String()
 		},
 		"hasNonScalarFields": func(s Struct) bool {
-			for _, f := range s.Fields {
-				if f.Array {
-					return true
-				}
-				if strings.HasPrefix(f.ZigType, "enums.") {
-					return false
-				}
-				switch f.ZigType {
-				case "bool", "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "char", "void":
-					continue
-				default:
-					return true
-				}
-			}
-			return false
+			return hasNonScalarFields(s)
 		},
 		"multilineStringLiteral": func(s string, indent int) string {
 			var out strings.Builder
@@ -75,9 +61,14 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			}
 			return fmt.Sprintf("%s", q.Ret.Field.ZigType)
 		},
-		"queryFuncArgs": func(q Query) string {
+		"queryFuncArgs": func(conf Config, q Query) string {
 			var out strings.Builder
 			out.WriteString("self: Self")
+			if conf.UnmanagedAllocations {
+				if q.RequiresAllocations() {
+					out.WriteString(", allocator: Allocator")
+				}
+			}
 			for i, name := range q.ArgNames() {
 				arg := q.Args[i]
 				out.WriteString(", ")
@@ -180,15 +171,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			return strings.HasPrefix(field.ZigType, "enums.")
 		},
 		"isNonScalar": func(field Field) bool {
-			if strings.HasPrefix(field.ZigType, "enums.") {
-				return false
-			}
-			switch field.ZigType {
-			case "bool", "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "char", "void":
-				return false
-			default:
-				return true
-			}
+			return isNonScalarBaseType(field.ZigType)
 		},
 		"allocType": func(field Field) string {
 			baseType := strings.TrimPrefix(field.ZigType, "[]")

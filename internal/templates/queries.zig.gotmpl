@@ -17,12 +17,13 @@ pub const PoolQuerier = Querier(*pg.Pool);
 pub fn Querier(comptime T: type) type {
     return struct {
         const Self = @This();
-
+        {{ if not $conf.UnmanagedAllocations }}
         allocator: Allocator,
+        {{- end }}
         conn: T,
 
-        pub fn init(allocator: Allocator, conn: T) Self {
-            return .{ .allocator = allocator, .conn = conn };
+        pub fn init({{ if not $conf.UnmanagedAllocations }}allocator: Allocator, {{ end }}conn: T) Self {
+            return .{ {{ if not $conf.UnmanagedAllocations }}.allocator = allocator, {{ end }}.conn = conn };
         }
         {{ range $query := .Queries }}
         {{ if $conf.PublicQueryStings }}pub {{ end }}const {{ $query.ConstantName }} = 
@@ -88,7 +89,7 @@ pub fn Querier(comptime T: type) type {
         {{- "\n" -}}
         {{- end }}
 
-        pub fn {{ $query.MethodName }}({{ queryFuncArgs $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
+        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
             {{- if isExecQuery $query }}
             _ = try self.conn.exec({{ $query.ConstantName }}, .{ {{- if not $query.Args -}} });{{- else }}
                 {{ queryExecParams $query 16 }} 
