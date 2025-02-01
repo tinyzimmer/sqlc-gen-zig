@@ -90,6 +90,9 @@ pub fn Querier(comptime T: type) type {
         {{- end }}
 
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
+            {{- if and $query.RequiresAllocations (not $conf.UnmanagedAllocations) }}
+            const allocator = self.allocator;
+            {{- end }}
             {{- if isExecQuery $query }}
             _ = try self.conn.exec({{ $query.ConstantName }}, .{ {{- if not $query.Args -}} });{{- else }}
                 {{ queryExecParams $query 16 }} 

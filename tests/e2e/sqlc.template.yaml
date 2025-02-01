@@ -9,7 +9,10 @@ sql:
   queries: src/schema/queries
   engine: postgresql
   codegen:
-  - out: src/gen
+  - out: src/gen/managed
+    plugin: zig
+    options: {}
+  - out: src/gen/unmanaged
     plugin: zig
     options:
-      public_query_strings: true
+      unmanaged_allocations: true

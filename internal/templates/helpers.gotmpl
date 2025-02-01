@@ -7,7 +7,7 @@ const row = try result.next() orelse return error.NotFound;
 {{- "\n" }}
 return .{
     {{- if hasNonScalarFields .Ret.Struct }}
-    .__allocator = self.allocator,
+    .__allocator = allocator,
     {{- end }}
     {{- range $idx, $field := .Ret.Struct.Fields }}
     .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
@@ -20,14 +20,14 @@ return row_{{ .Ret.Field.Name }};
 
 {{/* Scans a many row Query object and returns the value as an owned slice */}}
 {{- define "scanManyQuery" -}}
-var out = std.ArrayList({{ queryReturnType . }}).init(self.allocator);
+var out = std.ArrayList({{ queryReturnType . }}).init(allocator);
 defer out.deinit();
 while (try result.next()) |row| {
     {{- include "scanRow" . | indent 4 -}}
     {{- if .Ret.Struct }}
     try out.append(.{
         {{- if hasNonScalarFields .Ret.Struct }}
-        .__allocator = self.allocator,
+        .__allocator = allocator,
         {{- end }}
         {{- range $idx, $field := .Ret.Struct.Fields }}
         .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
@@ -54,23 +54,23 @@ return try out.toOwnedSlice();
 {{/* Scans a single Field object from a query */}}
 {{- define "scanValue" -}}
 {{- if .Array }}
-var row_{{ .Name }} = std.ArrayList({{ .ZigType }}).init(self.allocator);
+var row_{{ .Name }} = std.ArrayList({{ .ZigType }}).init(allocator);
 defer row_{{ .Name }}.deinit();
 var row_{{ .Name }}_iter = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
 while (row_{{ .Name }}_iter.next()) |item| {
     {{- if isEnum . }}
     try row_{{ .Name }}.append(std.meta.stringToEnum({{ .ZigType }}, item) orelse unreachable);
     {{- else if eq .ZigType "pg.Cidr" }}
-    const address = try self.allocator.dupe(u8, item.address);
-    errdefer self.allocator.free(address);
+    const address = try allocator.dupe(u8, item.address);
+    errdefer allocator.free(address);
     try row_{{ .Name }}.append(pg.Cidr{
         .address = address,
         .netmask = item.netmask,
         .family = item.family,
     });
     {{- else if eq .ZigType "pg.Numeric" }}
-    const digits = try self.allocator.dupe(u8, item.digits);
-    errdefer self.allocator.free(digits);
+    const digits = try allocator.dupe(u8, item.digits);
+    errdefer allocator.free(digits);
     try row_{{ .Name }}.append(pg.Numeric{
         .number_of_digits = item.number_of_digits,
         .weight = item.weight,
@@ -79,8 +79,8 @@ while (row_{{ .Name }}_iter.next()) |item| {
         .digits = digits,
     });
     {{- else if isNonScalar . }}
-    const value = try self.allocator.dupe({{ allocType . }}, item);
-    errdefer self.allocator.free(value);
+    const value = try allocator.dupe({{ allocType . }}, item);
+    errdefer allocator.free(value);
     try row_{{ .Name }}.append(value);
     {{- else }}
     try row_{{ .Name }}.append(item);
@@ -115,18 +115,18 @@ const row_{{ .Name }} = std.meta.stringToEnum({{ .ZigType }}, row.get([]const u8
 const maybe_{{ .Name }} = row.get(?{{ .ZigType }}, {{ .Index }});
 const row_{{ .Name }}: ?{{ .ZigType }} = blk: {
     if (maybe_{{ .Name }}) |field| {
-        break :blk try self.allocator.dupe({{ allocType . }}, field);
+        break :blk try allocator.dupe({{ allocType . }}, field);
     }
     break :blk null;
 };
 errdefer {
     if (row_{{ .Name }}) |field| {
-        self.allocator.free(field);
+        allocator.free(field);
     }
 }
 {{- else -}}
-const row_{{ .Name }} = try self.allocator.dupe({{ allocType . }}, row.get({{ fieldScanType . }}, {{ .Index }}));
-errdefer self.allocator.free(row_{{ .Name }});
+const row_{{ .Name }} = try allocator.dupe({{ allocType . }}, row.get({{ fieldScanType . }}, {{ .Index }}));
+errdefer allocator.free(row_{{ .Name }});
 {{- end -}}
 {{- end -}}
 
@@ -137,7 +137,7 @@ const {{ .Name }}_cidr = row.get({{ if .Nullable }}?{{ end }}pg.Cidr, {{ .Index 
 const row_{{ .Name }}: ?pg.Cidr = blk: {
     if ({{ .Name }}_cidr) |cidr| {
         break :blk pg.Cidr{
-            .address = try self.allocator.dupe(u8, cidr.address),
+            .address = try allocator.dupe(u8, cidr.address),
             .netmask = cidr.netmask,
             .family = cidr.family,
         };
@@ -146,16 +146,16 @@ const row_{{ .Name }}: ?pg.Cidr = blk: {
 };
 errdefer {
     if (row_{{ .Name }}) |cidr| {
-        self.allocator.free(cidr.address);
+        allocator.free(cidr.address);
     }
 }
 {{- else -}}
 const row_{{ .Name }} = pg.Cidr{
-    .address = try self.allocator.dupe(u8, {{ .Name }}_cidr.address),
+    .address = try allocator.dupe(u8, {{ .Name }}_cidr.address),
     .netmask = {{ .Name }}_cidr.netmask,
     .family = {{ .Name }}_cidr.family,
 };
-errdefer self.allocator.free(row_{{ .Name }}.address);
+errdefer allocator.free(row_{{ .Name }}.address);
 {{- end -}}
 {{- end -}}
 
@@ -170,14 +170,14 @@ const row_{{ .Name }}: ?pg.Numeric = blk: {
             .weight = numeric.weight,
             .sign = numeric.sign,
             .scale = numeric.scale,
-            .digits = try self.allocator.dupe(u8, numeric.digits),
+            .digits = try allocator.dupe(u8, numeric.digits),
         };
     }
     break :blk null;
 };
 errdefer {
     if (row_{{ .Name }}) |numeric| {
-        self.allocator.free(numeric.digits);
+        allocator.free(numeric.digits);
     }
 }
 {{- else -}}
@@ -186,8 +186,8 @@ const row_{{ .Name }} = pg.Numeric{
     .weight = {{ .Name }}_numeric.weight,
     .sign = {{ .Name }}_numeric.sign,
     .scale = {{ .Name }}_numeric.scale,
-    .digits = try self.allocator.dupe(u8, {{ .Name }}_numeric.digits),
+    .digits = try allocator.dupe(u8, {{ .Name }}_numeric.digits),
 };
-errdefer self.allocator.free(row_{{ .Name }}.digits);
+errdefer allocator.free(row_{{ .Name }}.digits);
 {{- end -}}
 {{- end -}}

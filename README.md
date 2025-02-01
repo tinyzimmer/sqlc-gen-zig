@@ -40,6 +40,12 @@ inflection_exclude_table_names: []
 query_parameter_limit: 3
 # Mark the raw query string constants as public
 public_query_strings: false
+# Set to true to not have the Querier store an internal allocator. Each query
+# method will take an allocator as a parameter instead.
+unmanaged_allocations: false
+# Use callbacks as parameters to generated methods. This is useful for code that
+# wants to execute queries with zero additional allocations.
+# use_callbacks: false
 ```
 
 ## Development

@@ -45,8 +45,11 @@ func (q *Query) ArgNames() []string {
 }
 
 func (q *Query) RequiresAllocations() bool {
-	if q.Ret == nil {
+	if q.Cmd == metadata.CmdExec || q.Ret == nil {
 		return false
+	}
+	if q.Cmd == metadata.CmdMany {
+		return true
 	}
 	if q.Ret.Field != nil {
 		return q.Ret.Field.Array || isNonScalarBaseType(q.Ret.Field.ZigType)
