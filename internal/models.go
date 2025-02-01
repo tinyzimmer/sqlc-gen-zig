@@ -36,7 +36,7 @@ func buildModels(conf Config, req *plugin.GenerateRequest) []Struct {
 				tableName = fmt.Sprintf("%s_%s", schema.GetName(), table.GetRel().GetName())
 			}
 			structName := tableName
-			if conf.EmitExactTableNames {
+			if !conf.EmitExactTableNames {
 				structName = inflection.Singular(inflection.SingularParams{
 					Name:       structName,
 					Exclusions: conf.InflectionExcludeTableNames,

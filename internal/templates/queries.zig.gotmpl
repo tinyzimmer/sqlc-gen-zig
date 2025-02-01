@@ -89,7 +89,11 @@ pub fn Querier(comptime T: type) type {
         {{- "\n" -}}
         {{- end }}
 
+        {{- if $conf.UseCallbacks }}
+        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, comptime cb: (fn (val: {{ queryReturnType $query }}) anyerror!void){{ end }}) !void {
+        {{- else }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
+        {{- end }}
             {{- if and $query.RequiresAllocations (not $conf.UnmanagedAllocations) }}
             const allocator = self.allocator;
             {{- end }}
@@ -112,7 +116,6 @@ pub fn Querier(comptime T: type) type {
             {{- else if isOneQuery $query }}
             {{- "\n" }}
             {{- include "scanOneQuery" $query | indent 12 }}
-            {{- else if isExecQuery $query }}
             {{- end }}
         }
         {{- "\n" -}}

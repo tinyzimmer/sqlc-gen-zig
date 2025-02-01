@@ -32,7 +32,7 @@ Below are the available `options` with their default values:
 ```yaml
 # The Zig backend to use (currently only "pg.zig" is supported)
 backend: pg.zig
-# Set to true to create structs with the singular table name
+# Set to true to not force struct names to their singular form
 emit_exact_table_names: false
 # Exclude the following table names from being parsed into their singular form
 inflection_exclude_table_names: []
