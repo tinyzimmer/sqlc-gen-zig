@@ -10,6 +10,7 @@ type Config struct {
 	PublicQueryStings           bool     `json:"public_query_strings"`
 	UnmanagedAllocations        bool     `json:"unmanaged_allocations"`
 	UseContext                  bool     `json:"use_context"`
+	PGErrorUnions               bool     `json:"pg_error_unions"`
 }
 
 func (c *Config) Default() {

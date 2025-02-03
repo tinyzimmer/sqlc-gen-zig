@@ -48,6 +48,11 @@ unmanaged_allocations: false
 # with a `handle` method taking the return value of the query method. See the
 # e2e/src/context.zig tests for some examples for now.
 use_context: false
+# Set to true to return a union of pg.Error and the query result instead of
+# returning just the result. This is useful for code that wants to handle server
+# side errors in a more granular way (e.g. checking for constraint violations).
+# Not implemented yet.
+# pg_error_unions: false
 ```
 
 ## Development

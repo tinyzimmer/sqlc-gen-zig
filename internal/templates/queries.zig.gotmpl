@@ -15,8 +15,6 @@ const models = @import("{{ .ModelsFile }}");
 pub const ConnQuerier = Querier(*pg.Conn);
 pub const PoolQuerier = Querier(*pg.Pool);
 
-const max_enum_slice_len = 512;
-
 pub fn Querier(comptime T: type) type {
     return struct {
         const Self = @This();
@@ -98,7 +96,7 @@ pub fn Querier(comptime T: type) type {
 
         {{- if $conf.UseContext }}
         {{/* pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, comptime cb: (fn (val: {{ queryReturnType $query }}) anyerror!void){{ end }}) !void { */}}
-        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, ctx: anytype{{ end }}) !void {
+        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !void {
         {{- else }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
         {{- end }}

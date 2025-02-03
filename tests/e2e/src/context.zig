@@ -31,7 +31,7 @@ test "context - one field queries" {
     const querier = UserQuerier.init(test_db.pool);
 
     var empty_ctx = Context{};
-    try expectError(error.NotFound, querier.getUserIDByEmail("test@example.com", &empty_ctx));
+    try expectError(error.NotFound, querier.getUserIDByEmail(&empty_ctx, "test@example.com"));
 
     try querier.createUser(.{
         .name = "test",
@@ -43,7 +43,7 @@ test "context - one field queries" {
     });
 
     var ctx = Context{};
-    try querier.getUserIDByEmail("test@example.com", &ctx);
+    try querier.getUserIDByEmail(&ctx, "test@example.com");
     try expectEqual(1, ctx.call_count);
     try expectEqual(1, ctx.called_with);
 }
@@ -69,7 +69,7 @@ test "context - many field queries" {
     const querier = UserQuerier.init(test_db.pool);
 
     var empty_context = Context{};
-    try querier.getUserIDsByRole(.admin, &empty_context);
+    try querier.getUserIDsByRole(&empty_context, .admin);
     try expectEqual(0, empty_context.call_count);
 
     try querier.createUser(.{
@@ -98,7 +98,7 @@ test "context - many field queries" {
     });
 
     var ctx = Context{};
-    try querier.getUserIDsByRole(.admin, &ctx);
+    try querier.getUserIDsByRole(&ctx, .admin);
     try expectEqual(2, ctx.call_count);
     try expectEqual(1, ctx.called_with[0]);
     try expectEqual(2, ctx.called_with[1]);
@@ -140,7 +140,7 @@ test "context - one struct queries" {
     };
 
     var error_ctx = Context{};
-    try expectError(error.NotFound, querier.getUser(1, &error_ctx));
+    try expectError(error.NotFound, querier.getUser(&error_ctx, 1));
 
     try querier.createUser(.{
         .name = "test",
@@ -152,7 +152,7 @@ test "context - one struct queries" {
     });
 
     var ctx = Context{ .expect = true };
-    try querier.getUser(1, &ctx);
+    try querier.getUser(&ctx, 1);
 }
 
 test "context - many struct queries" {

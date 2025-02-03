@@ -64,10 +64,13 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		"queryFuncArgs": func(conf Config, q Query) string {
 			var out strings.Builder
 			out.WriteString("self: Self")
-			if conf.UnmanagedAllocations {
+			if conf.UnmanagedAllocations && !conf.UseContext {
 				if q.RequiresAllocations() {
 					out.WriteString(", allocator: Allocator")
 				}
+			}
+			if conf.UseContext && q.Cmd != metadata.CmdExec {
+				out.WriteString(", ctx: anytype")
 			}
 			for i, name := range q.ArgNames() {
 				arg := q.Args[i]
