@@ -42,7 +42,7 @@ pub fn Querier(comptime T: type) type {
         {{- if $arg.Struct }}
         pub const {{ $arg.Struct.StructName }} = struct {
             {{- range $field := $arg.Struct.Fields }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ if and (isEnum $field) $field.Array }}const {{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
             {{- end }}
         };
         {{- "\n" -}}
@@ -58,9 +58,9 @@ pub fn Querier(comptime T: type) type {
             {{- end }}
             {{- range $field := $query.Ret.Struct.Fields }}
             {{- if $conf.UseContext }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}*pg.Iterator({{ end }}{{ if isEnum $field }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}*pg.Iterator({{ end }}{{ if and (isEnum $field) $field.Array }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
             {{- else }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ if and (isEnum $field) $field.Array }}const {{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
             {{- end }}
             {{- end }}
 
@@ -104,41 +104,6 @@ pub fn Querier(comptime T: type) type {
         {{- end }}
             {{- if and (and $query.RequiresAllocations (not $conf.UnmanagedAllocations)) (not $conf.UseContext) }}
             const allocator = self.allocator;
-            {{- end }}
-            {{- if hasEnumArrayArgs $query }}
-            {{- range $arg := $query.Args }}
-            {{- if $arg.Struct }}
-            {{- range $field := $arg.Struct.Fields }}
-            {{- if and (isEnum $field) $field.Array }}
-            var {{ $field.Name }}_buf: [max_enum_slice_len]u8 = undefined;
-            var {{ $field.Name }}_alloc = std.heap.FixedBufferAllocator.init(&{{ $field.Name }}_buf);
-            var {{ $field.Name }}_arr = std.ArrayList(u8).init({{ $field.Name }}_alloc.allocator());
-            var {{ $field.Name }}_writer = {{ $field.Name }}_arr.writer();
-            _ = try {{ $field.Name }}_writer.writeAll("{");
-            for ({{ $arg.Name }}.{{ $field.Name }}, 0..) |item, idx| {
-                _ = try {{ $field.Name }}_writer.writeAll(@tagName(item));
-                if ((idx + 1) < {{ $arg.Name }}.{{ $field.Name }}.len) {
-                    _ = try {{ $field.Name }}_writer.writeAll(", ");
-                }
-            }
-             _ = try {{ $field.Name }}_writer.writeAll("}");
-            {{- end }}
-            {{- end }}
-            {{- else if $arg.Field }}
-            var {{ $arg.Name }}_buf: [max_enum_slice_len]u8 = undefined;
-            var {{ $arg.Name }}_alloc = std.heap.FixedBufferAllocator.init(&{{ $arg.Name }}_buf);
-            var {{ $arg.Name }}_arr = std.ArrayList(u8).init({{ $arg.Name }}_alloc.allocator());
-            var {{ $arg.Name }}_writer = {{ $arg.Name }}_arr.writer();
-            _ = try {{ $arg.Name }}_writer.writeAll("{");
-            for ({{ $arg.Name }}, 0..) |item, idx| {
-                _ = try {{ $arg.Name }}_writer.writeAll(@tagName(item));
-                if ((idx + 1) < {{ $arg.Name }}.len) {
-                    _ = try {{ $arg.Name }}_writer.writeAll(", ");
-                }
-            }
-             _ = try {{ $arg.Name }}_writer.writeAll("}");
-            {{- end }}
-            {{- end }}
             {{- end }}
             {{- if isExecQuery $query }}
             _ = try self.conn.exec({{ $query.ConstantName }}, .{ {{- if not $query.Args -}} });{{- else }}

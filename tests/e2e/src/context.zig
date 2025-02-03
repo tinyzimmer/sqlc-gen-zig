@@ -132,7 +132,7 @@ test "context - one struct queries" {
                 try expectEqualStrings("test", user.name);
                 try expectEqualStrings("test@example.com", user.email);
                 try expectEqualStrings("password", user.password);
-                try expectEqualStrings(@tagName(enums.UserRole.admin), user.role);
+                try expectEqual(enums.UserRole.admin, user.role);
                 try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
                 try expectEqual(1000.50, user.salary.?.toFloat());
             }
@@ -194,7 +194,7 @@ test "context - many struct queries" {
                     }
                     break :blk .user;
                 };
-                try expectEqualStrings(@tagName(expected_role), user.role);
+                try expectEqual(expected_role, user.role);
                 try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
             }
         }

@@ -25,9 +25,9 @@ pub const {{ $model.StructName }} = struct {
     // {{ $field.Comment }}
     {{- end }}
     {{- if $conf.UseContext }}
-    {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}*pg.Iterator({{ end }}{{ if isEnum $field }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
+    {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}*pg.Iterator({{ end }}{{ if and (isEnum $field) $field.Array }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
     {{- else }}
-    {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
+    {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ if and (isEnum $field) $field.Array }}const {{ end }}{{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
     {{- end }}
     {{- end }}
 

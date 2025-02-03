@@ -107,26 +107,10 @@ func templateFuncs(t *template.Template) template.FuncMap {
 						if i != 0 {
 							out.WriteString(fmt.Sprintf(",\n%s", strings.Repeat(" ", indent)))
 						}
-						if strings.HasPrefix(field.ZigType, enumsTypePrefix) {
-							if field.Array {
-								out.WriteString(fmt.Sprintf("%s_arr.items", field.Name))
-							} else {
-								out.WriteString(fmt.Sprintf("@tagName(%s.%s)", name, field.Name))
-							}
-						} else {
-							out.WriteString(fmt.Sprintf("%s.%s", name, field.Name))
-						}
+						out.WriteString(fmt.Sprintf("%s.%s", name, field.Name))
 					}
 				} else {
-					if strings.HasPrefix(arg.Field.ZigType, enumsTypePrefix) {
-						if arg.Field.Array {
-							out.WriteString(fmt.Sprintf("%s_arr.items", name))
-						} else {
-							out.WriteString(fmt.Sprintf("@tagName(%s)", name))
-						}
-					} else {
-						out.WriteString(name)
-					}
+					out.WriteString(name)
 				}
 				if i != len(q.Args)-1 {
 					out.WriteString(",\n")
@@ -137,10 +121,6 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			return out.String()
 		},
 		"fieldScanType": func(f Field) string {
-			typ := f.ZigType
-			if strings.HasPrefix(typ, enumsTypePrefix) {
-				return "[]const u8"
-			}
 			if f.Nullable {
 				return fmt.Sprintf("?%s", f.ZigType)
 			}

@@ -94,7 +94,7 @@ return try out.toOwnedSlice();
 {{- if .Array }}
 var row_{{ .Name }} = std.ArrayList({{ .ZigType }}).init(allocator);
 defer row_{{ .Name }}.deinit();
-var row_{{ .Name }}_iter = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
+var row_{{ .Name }}_iter = row.get(pg.Iterator({{ if isEnum . }}[]const u8{{ else }}{{ fieldScanType . }}{{ end }}), {{ .Index }});
 while (row_{{ .Name }}_iter.next()) |item| {
     {{- if isEnum . }}
     try row_{{ .Name }}.append(std.meta.stringToEnum({{ .ZigType }}, item) orelse unreachable);
@@ -125,7 +125,7 @@ while (row_{{ .Name }}_iter.next()) |item| {
     {{- end }}
 }
 {{- else if isEnum . }}
-{{ include "scanEnum" . }}
+{{ include "scanNoAlloc" . }}
 {{- else if eq .ZigType "pg.Cidr" }}
 {{ include "scanPGCidr" . }}
 {{- else if eq .ZigType "pg.Numeric" }}
@@ -140,7 +140,7 @@ while (row_{{ .Name }}_iter.next()) |item| {
 {{/* Scans a field object without duplicating the value */}}
 {{- define "scanNoAlloc" -}}
 {{- if .Array -}}
-var row_{{ .Name }} = row.get(pg.Iterator({{ fieldScanType . }}), {{ .Index }});
+var row_{{ .Name }} = row.get(pg.Iterator({{ if isEnum . }}[]const u8{{ else }}{{ fieldScanType . }}{{ end }}), {{ .Index }});
 {{- else -}}
 const row_{{ .Name }} = row.get({{ fieldScanType . }}, {{ .Index }});
 {{- end -}}
