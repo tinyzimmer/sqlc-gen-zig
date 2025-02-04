@@ -49,6 +49,12 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			}
 			return out.String()
 		},
+		"callQueryFunc": func(q Query) string {
+			if q.Cmd == metadata.CmdExec {
+				return "conn.exec"
+			}
+			return "conn.query"
+		},
 		"queryReturnType": func(q Query) string {
 			if q.Ret == nil {
 				return "void"
@@ -68,10 +74,16 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			if q.Ret == nil {
 				return "ok"
 			}
+			var val string
 			if q.Ret.Struct != nil {
-				return snakeCase(q.Ret.Struct.StructName)
+				val = snakeCase(q.Ret.Struct.StructName)
+			} else {
+				val = snakeCase(q.Ret.Field.Name)
 			}
-			return snakeCase(q.Ret.Field.Name)
+			if q.Cmd == metadata.CmdMany {
+				return fmt.Sprintf("%s_list", val)
+			}
+			return val
 		},
 		"queryFuncArgs": func(conf Config, q Query) string {
 			var out strings.Builder
@@ -112,10 +124,16 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		},
 		"queryExecParams": func(q Query, indent int) string {
 			var out strings.Builder
+			out.WriteString(".{")
+			indentSpace := strings.Repeat(" ", indent)
+			endIndent := strings.Repeat(" ", indent-4)
 			for i, name := range q.ArgNames() {
 				arg := q.Args[i]
 				if i != 0 {
-					out.WriteString(strings.Repeat(" ", indent))
+					out.WriteString(indentSpace)
+				} else {
+					out.WriteString(" \n")
+					out.WriteString(indentSpace)
 				}
 				if arg.Struct != nil {
 					for i, field := range arg.Struct.Fields {
@@ -127,12 +145,12 @@ func templateFuncs(t *template.Template) template.FuncMap {
 				} else {
 					out.WriteString(name)
 				}
-				if i != len(q.Args)-1 {
-					out.WriteString(",\n")
-				} else {
-					out.WriteString(",")
+				out.WriteString(",\n")
+				if i == len(q.Args)-1 {
+					out.WriteString(endIndent)
 				}
 			}
+			out.WriteString("}")
 			return out.String()
 		},
 		"fieldScanType": func(f Field) string {

@@ -41,19 +41,7 @@ while (try result.next()) |row| {
 const row = try result.next() orelse return error.NotFound;
 {{- "\n" }}
 {{- include "scanRow" . -}}
-{{- if .Ret.Struct }}
 {{- "\n" }}
-return .{
-    {{- if hasNonScalarFields .Ret.Struct }}
-    .__allocator = allocator,
-    {{- end }}
-    {{- range $idx, $field := .Ret.Struct.Fields }}
-    .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
-    {{- end }}
-};
-{{- else }}
-return row_{{ .Ret.Field.Name }};
-{{- end }}
 {{- end -}}
 
 {{/* Scans a many row Query object and returns the value as an owned slice */}}
@@ -75,7 +63,7 @@ while (try result.next()) |row| {
     try out.append(row_{{ .Ret.Field.Name }});
     {{- end }}
 }
-return try out.toOwnedSlice();
+{{- "\n" }}
 {{- end -}}
 
 {{/* Scans a single row in a Query */}}
