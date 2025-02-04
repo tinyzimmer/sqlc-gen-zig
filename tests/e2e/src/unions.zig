@@ -42,9 +42,14 @@ test "unions - one field queries" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    const err = result.err() orelse unreachable;
-    defer allocator.free(result.pgerr);
-    try expect(err.isUnique());
+    switch (result) {
+        .ok => unreachable,
+        .pgerr => {
+            const err = result.err() orelse unreachable;
+            defer allocator.free(result.pgerr);
+            try expect(err.isUnique());
+        },
+    }
 }
 
 test "unions - many field queries" {
