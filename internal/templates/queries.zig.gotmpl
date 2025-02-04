@@ -105,7 +105,7 @@ pub fn Querier(comptime T: type) type {
             pub fn err(self: @This()) ?pg.Error {
                 switch (self) {
                     .{{ queryReturnID $query }} => return null,
-                    .err_data => return pg.Error.parse(self.err_data),
+                    .pgerr => return pg.Error.parse(self.pgerr),
                 }
             }
         };
@@ -134,8 +134,7 @@ pub fn Querier(comptime T: type) type {
             }
             {{ if not (isExecQuery $query) }}const result{{ else }}_{{ end }} = {{ if not $conf.PGErrorUnions }}try {{ end }}{{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }}){{ if not $conf.PGErrorUnions }};{{ else }} catch |err| {
                 if (conn.err) |_| {
-                    const err_data = try allocator.dupe(u8, conn._err_data orelse unreachable);
-                    return .{ .err_data = pg.Error.parse(err_data) };
+                    return .{ .pgerr = try allocator.dupe(u8, conn._err_data orelse unreachable) };
                 }
                 return err;
             };{{ end }}
@@ -143,7 +142,7 @@ pub fn Querier(comptime T: type) type {
             defer result.deinit();
             {{- else }}
             {{- if $conf.PGErrorUnions }}
-            return .{ .ok };
+            return .{ .ok = undefined };
             {{- end }}
             {{- end -}}
 
