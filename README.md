@@ -51,8 +51,8 @@ use_context: false
 # Set to true to return a union of pg.Error and the query result instead of
 # returning just the result. This is useful for code that wants to handle server
 # side errors in a more granular way (e.g. checking for constraint violations).
-# Not implemented yet.
-# pg_error_unions: false
+# As with context for now, see the tests in e2e/src/unions.zig for examples.
+pg_error_unions: false
 ```
 
 ## Development
