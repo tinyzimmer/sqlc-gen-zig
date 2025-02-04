@@ -34,7 +34,7 @@ test "unions - one field queries" {
     try expectEqual(1, user_id_result.id);
 
     // We should get a unique error
-    const unique_err = try querier.createUser(.{
+    const dupe_result = try querier.createUser(.{
         .name = "test",
         .email = "test@example.com",
         .password = "password",
@@ -42,9 +42,9 @@ test "unions - one field queries" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    const err = unique_err.err() orelse unreachable;
-    defer allocator.free(unique_err.pgerr);
-    try expect(err.?.isUnique());
+    const err = dupe_result.err() orelse unreachable;
+    defer allocator.free(dupe_result.pgerr);
+    try expect(err.isUnique());
 }
 
 // test "managed - many field queries" {
