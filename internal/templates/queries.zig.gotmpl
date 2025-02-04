@@ -35,6 +35,7 @@ pub fn Querier(comptime T: type) type {
         // {{ $comment }}
         {{- end }}
         
+        {{- /* Check if we are declaring a struct for the parameters of this query */}}
         {{- if hasLocalStructArg $query }}
         {{- range $arg := $query.Args }}
         {{- if $arg.Struct }}
@@ -48,6 +49,7 @@ pub fn Querier(comptime T: type) type {
         {{- end }}
         {{- end }}
 
+        {{- /* Check if we are returning a custom struct from this query */}}
         {{- if and (and $query.Ret $query.Ret.Struct) $query.Ret.Emit }}
         pub const {{ $query.Ret.Struct.StructName }} = struct {
             {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseContext) }}
@@ -94,11 +96,19 @@ pub fn Querier(comptime T: type) type {
         {{- "\n" -}}
         {{- end }}
 
+        {{- /* Check if we are declaring a pg.Error union from this query, on exec queries */}}
+        {{- if $conf.PGErrorUnions }}
+        pub const {{ errorUnionType $query }} = union {
+            {{ queryReturnID $query }}: {{ queryReturnType $query }},
+            err: pg.Error,
+        };
+        {{- "\n" -}}
+        {{- end }}
+
         {{- if $conf.UseContext }}
-        {{/* pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}{{ if not (isExecQuery $query) }}, comptime cb: (fn (val: {{ queryReturnType $query }}) anyerror!void){{ end }}) !void { */}}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !void {
         {{- else }}
-        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
+        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if $conf.PGErrorUnions }}{{ errorUnionType $query }}{{ else }}{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }}{{ end }} {
         {{- end }}
             {{- if and (and $query.RequiresAllocations (not $conf.UnmanagedAllocations)) (not $conf.UseContext) }}
             const allocator = self.allocator;

@@ -20,3 +20,7 @@ sql:
     plugin: zig
     options:
       use_context: true
+  - out: src/gen/unions
+    plugin: zig
+    options:
+      pg_error_unions: true

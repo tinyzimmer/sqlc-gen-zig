@@ -61,6 +61,18 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			}
 			return fmt.Sprintf("%s", q.Ret.Field.ZigType)
 		},
+		"errorUnionType": func(q Query) string {
+			return pascalCase(fmt.Sprintf("%sResult", q.MethodName))
+		},
+		"queryReturnID": func(q Query) string {
+			if q.Ret == nil {
+				return "ok"
+			}
+			if q.Ret.Struct != nil {
+				return snakeCase(q.Ret.Struct.StructName)
+			}
+			return snakeCase(q.Ret.Field.Name)
+		},
 		"queryFuncArgs": func(conf Config, q Query) string {
 			var out strings.Builder
 			out.WriteString("self: Self")
@@ -187,6 +199,9 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		},
 		"snakeCase": func(s string) string {
 			return snakeCase(s)
+		},
+		"pascalCase": func(s string) string {
+			return pascalCase(s)
 		},
 	}
 }
