@@ -70,7 +70,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		"errorUnionType": func(q Query) string {
 			return pascalCase(fmt.Sprintf("%sResult", q.MethodName))
 		},
-		"queryReturnID": func(q Query) string {
+		"queryReturnID": func(conf Config, q Query) string {
 			if q.Ret == nil {
 				return "ok"
 			}
@@ -80,7 +80,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			} else {
 				val = snakeCase(q.Ret.Field.Name)
 			}
-			if q.Cmd == metadata.CmdMany {
+			if q.Cmd == metadata.CmdMany && !conf.UseContext {
 				return fmt.Sprintf("%s_list", val)
 			}
 			return val
@@ -93,7 +93,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 					out.WriteString(", allocator: Allocator")
 				}
 			}
-			if conf.UseContext && q.Cmd != metadata.CmdExec {
+			if conf.UseContext && (conf.PGErrorUnions || q.Cmd != metadata.CmdExec) {
 				out.WriteString(", ctx: anytype")
 			}
 			for i, name := range q.ArgNames() {
@@ -220,6 +220,12 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		},
 		"pascalCase": func(s string) string {
 			return pascalCase(s)
+		},
+		"queryWithConfig": func(conf Config, q Query) map[string]any {
+			return map[string]any{
+				"Config": conf,
+				"Query":  q,
+			}
 		},
 	}
 }

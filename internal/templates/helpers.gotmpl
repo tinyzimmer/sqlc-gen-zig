@@ -1,69 +1,141 @@
 {{/* Scans a single row Query object without allocations and invokes a callback */}}
 {{- define "scanOneQueryCallback" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
 const row = try result.next() orelse return error.NotFound;
 {{- "\n" }}
-{{- if .Ret.Struct }}
-{{- range $idx, $field := .Ret.Struct.Fields }}
+{{- if $query.Ret.Struct }}
+{{- range $idx, $field := $query.Ret.Struct.Fields }}
 {{ include "scanNoAlloc" . }}
 {{- end }}
+{{- if $conf.PGErrorUnions }}
 try ctx.handle(.{
-    {{- range $idx, $field := .Ret.Struct.Fields }}
+    .{{ queryReturnID $conf $query }} = .{
+        {{- range $idx, $field := $query.Ret.Struct.Fields }}
+        .{{ $field.Name }} = {{ if $field.Array }}&{{ end }}row_{{ $field.Name }},
+        {{- end }}
+    },
+});
+{{- else }}
+try ctx.handle(.{
+    {{- range $idx, $field := $query.Ret.Struct.Fields }}
     .{{ $field.Name }} = {{ if $field.Array }}&{{ end }}row_{{ $field.Name }},
     {{- end }}
 });
+{{- end }}
 {{- else }}
-{{ include "scanNoAlloc" .Ret.Field }}
-try ctx.handle({{ if .Ret.Field.Array }}&{{ end }}row_{{ .Ret.Field.Name }});
+{{ include "scanNoAlloc" $query.Ret.Field }}
+{{- if $conf.PGErrorUnions }}
+try ctx.handle(.{
+    .{{ queryReturnID $conf $query }} = {{ if $query.Ret.Field.Array }}&{{ end }}row_{{ $query.Ret.Field.Name }},
+});
+{{- else }}
+try ctx.handle({{ if $query.Ret.Field.Array }}&{{ end }}row_{{ $query.Ret.Field.Name }});
+{{- end }}
 {{- end }}
 {{- end -}}
 
 {{/* Scans a many row Query object without allocations and invokes a callback */}}
 {{- define "scanManyQueryCallback" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
 while (try result.next()) |row| {
-    {{- if .Ret.Struct }}
-    {{- range $idx, $field := .Ret.Struct.Fields }}
+    {{- if $query.Ret.Struct }}
+    {{- range $idx, $field := $query.Ret.Struct.Fields }}
     {{ include "scanNoAlloc" . }}
     {{- end }}
+    {{- if $conf.PGErrorUnions }}
     try ctx.handle(.{
-        {{- range $idx, $field := .Ret.Struct.Fields }}
+        .{{ queryReturnID $conf $query }} = .{
+            {{- range $idx, $field := $query.Ret.Struct.Fields }}
+            .{{ $field.Name }} = {{ if $field.Array }}&{{ end }}row_{{ $field.Name }},
+            {{- end }}
+        },
+    });
+    {{- else }}
+    try ctx.handle(.{
+        {{- range $idx, $field := $query.Ret.Struct.Fields }}
         .{{ $field.Name }} = {{ if $field.Array }}&{{ end }}row_{{ $field.Name }},
         {{- end }}
     });
+    {{- end }}
     {{- else }}
-    {{ include "scanNoAlloc" .Ret.Field }}
-    try ctx.handle({{ if .Ret.Field.Array }}&{{ end }}row_{{ .Ret.Field.Name }});
+    {{ include "scanNoAlloc" $query.Ret.Field }}
+    {{- if $conf.PGErrorUnions }}
+    try ctx.handle(.{
+        .{{ queryReturnID $conf $query }} = {{ if $query.Ret.Field.Array }}&{{ end }}row_{{ $query.Ret.Field.Name }},
+    });
+    {{- else }}
+    try ctx.handle({{ if $query.Ret.Field.Array }}&{{ end }}row_{{ $query.Ret.Field.Name }});
+    {{- end }}
     {{- end }}
 }
 {{- end -}}
 
 {{/* Scans a single row Query object and returns the value */}}
-{{- define "scanOneQuery" -}}
+{{- define "scanAndReturnOneQuery" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
 const row = try result.next() orelse return error.NotFound;
 {{- "\n" }}
-{{- include "scanRow" . -}}
+{{- include "scanRow" $query -}}
 {{- "\n" }}
+{{- if $query.Ret.Struct }}
+{{- if $conf.PGErrorUnions }}
+return .{
+    .{{ queryReturnID $conf $query }} = .{
+        {{- if hasNonScalarFields $query.Ret.Struct }}
+        .__allocator = allocator,
+        {{- end }}
+        {{- range $idx, $field := $query.Ret.Struct.Fields }}
+        .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
+        {{- end }}
+    }
+};
+{{- else }}
+return .{
+    {{- if hasNonScalarFields $query.Ret.Struct }}
+    .__allocator = allocator,
+    {{- end }}
+    {{- range $idx, $field := $query.Ret.Struct.Fields }}
+    .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
+    {{- end }}
+};
+{{- end }}
+{{- else }}
+return {{ if $conf.PGErrorUnions }}.{ .{{ queryReturnID $conf $query }} = row_{{ $query.Ret.Field.Name }}}{{ else }}row_{{ $query.Ret.Field.Name }}{{ end }};
+{{- end }}
 {{- end -}}
 
 {{/* Scans a many row Query object and returns the value as an owned slice */}}
-{{- define "scanManyQuery" -}}
-var out = std.ArrayList({{ queryReturnType . }}).init(allocator);
+{{- define "scanAndReturnManyQuery" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
+var out = std.ArrayList({{ queryReturnType $query }}).init(allocator);
 defer out.deinit();
 while (try result.next()) |row| {
-    {{- include "scanRow" . | indent 4 -}}
-    {{- if .Ret.Struct }}
+    {{- include "scanRow" $query | indent 4 -}}
+    {{- if $query.Ret.Struct }}
     try out.append(.{
-        {{- if hasNonScalarFields .Ret.Struct }}
+        {{- if hasNonScalarFields $query.Ret.Struct }}
         .__allocator = allocator,
         {{- end }}
-        {{- range $idx, $field := .Ret.Struct.Fields }}
+        {{- range $idx, $field := $query.Ret.Struct.Fields }}
         .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
         {{- end }}
     });
     {{- else }}
-    try out.append(row_{{ .Ret.Field.Name }});
+    try out.append(row_{{ $query.Ret.Field.Name }});
     {{- end }}
 }
 {{- "\n" }}
+{{- if $conf.PGErrorUnions }}
+return .{
+    .{{ queryReturnID $conf $query }} = try out.toOwnedSlice(),
+};
+{{- else }}
+return try out.toOwnedSlice();
+{{- end }}
 {{- end -}}
 
 {{/* Scans a single row in a Query */}}

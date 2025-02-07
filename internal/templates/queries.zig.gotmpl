@@ -99,12 +99,12 @@ pub fn Querier(comptime T: type) type {
         {{- /* Check if we are declaring a pg.Error union from this query, on exec queries */}}
         {{- if $conf.PGErrorUnions }}
         pub const {{ errorUnionType $query }} = union(enum) {
-            {{ queryReturnID $query }}: {{if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }},
+            {{ queryReturnID $conf $query }}: {{if and (isManyQuery $query) (not $conf.UseContext) }}[]{{ end }}{{ queryReturnType $query }},
             pgerr: []const u8,
 
             pub fn err(self: @This()) ?pg.Error {
                 switch (self) {
-                    .{{ queryReturnID $query }} => return null,
+                    .{{ queryReturnID $conf $query }} => return null,
                     .pgerr => return pg.Error.parse(self.pgerr),
                 }
             }
@@ -117,7 +117,7 @@ pub fn Querier(comptime T: type) type {
         {{- else }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if $conf.PGErrorUnions }}{{ errorUnionType $query }}{{ else }}{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }}{{ end }} {
         {{- end }}
-            {{- if or (and (and $query.RequiresAllocations (not $conf.UnmanagedAllocations)) (not $conf.UseContext)) $conf.PGErrorUnions }}
+            {{- if or (and (and $query.RequiresAllocations (not $conf.UnmanagedAllocations)) (not $conf.UseContext)) (and $conf.PGErrorUnions (not $conf.UseContext)) }}
             const allocator = self.allocator;
             {{- end }}
             var conn: *pg.Conn = blk: {
@@ -134,7 +134,12 @@ pub fn Querier(comptime T: type) type {
             }
             {{ if not (isExecQuery $query) }}const result{{ else }}_{{ end }} = {{ if not $conf.PGErrorUnions }}try {{ end }}{{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }}){{ if not $conf.PGErrorUnions }};{{ else }} catch |err| {
                 if (conn.err) |_| {
+                    {{- if $conf.UseContext }}
+                    try ctx.handle(.{ .pgerr = conn._err_data });
+                    return;
+                    {{- else }}
                     return .{ .pgerr = try allocator.dupe(u8, conn._err_data orelse unreachable) };
+                    {{- end }}
                 }
                 return err;
             };{{ end }}
@@ -142,57 +147,30 @@ pub fn Querier(comptime T: type) type {
             defer result.deinit();
             {{- else }}
             {{- if $conf.PGErrorUnions }}
+            {{- if $conf.UseContext }}
+            try ctx.handle(.{ .ok = undefined });
+            return;
+            {{- else }}
             return .{ .ok = undefined };
+            {{- end }}
             {{- end }}
             {{- end -}}
 
             {{- if $conf.UseContext }}
             {{- if isManyQuery $query }}
             {{- "\n" }}
-            {{- include "scanManyQueryCallback" $query | indent 12 }}
+            {{- include "scanManyQueryCallback" (queryWithConfig $conf $query) | indent 12 }}
             {{- else if isOneQuery $query }}
             {{- "\n" }}
-            {{- include "scanOneQueryCallback" $query | indent 12 }}
+            {{- include "scanOneQueryCallback" (queryWithConfig $conf $query) | indent 12 }}
             {{- end }}
             {{- else }}
             {{- if isManyQuery $query }}
             {{- "\n" }}
-            {{- include "scanManyQuery" $query | indent 12 }}
-            {{- if $conf.PGErrorUnions }}
-            return .{
-                .{{ queryReturnID $query }} = try out.toOwnedSlice(),
-            };
-            {{- else }}
-            return try out.toOwnedSlice();
-            {{- end }}
+            {{- include "scanAndReturnManyQuery" (queryWithConfig $conf $query) | indent 12 }}
             {{- else if isOneQuery $query }}
             {{- "\n" }}
-            {{- include "scanOneQuery" $query | indent 12 }}
-            {{- if .Ret.Struct }}
-            {{- if $conf.PGErrorUnions }}
-            return .{
-                .{{ queryReturnID $query }} = .{
-                    {{- if hasNonScalarFields .Ret.Struct }}
-                    .__allocator = allocator,
-                    {{- end }}
-                    {{- range $idx, $field := .Ret.Struct.Fields }}
-                    .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
-                    {{- end }}
-                }
-            };
-            {{- else }}
-            return .{
-                {{- if hasNonScalarFields .Ret.Struct }}
-                .__allocator = allocator,
-                {{- end }}
-                {{- range $idx, $field := .Ret.Struct.Fields }}
-                .{{ $field.Name }} = {{ if $field.Array}}try {{ end }}row_{{ $field.Name }}{{ if $field.Array}}.toOwnedSlice(){{ end }},
-                {{- end }}
-            };
-            {{- end }}
-            {{- else }}
-            return {{ if $conf.PGErrorUnions }}.{ .{{ queryReturnID $query }} = row_{{ .Ret.Field.Name }}}{{ else }}row_{{ .Ret.Field.Name }}{{ end }};
-            {{- end }}
+            {{- include "scanAndReturnOneQuery" (queryWithConfig $conf $query) | indent 12 }}
             {{- end }}
             {{- end }}
         }
