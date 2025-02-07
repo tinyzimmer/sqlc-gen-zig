@@ -135,7 +135,7 @@ pub fn Querier(comptime T: type) type {
             {{ if not (isExecQuery $query) }}const result{{ else }}_{{ end }} = {{ if not $conf.PGErrorUnions }}try {{ end }}{{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }}){{ if not $conf.PGErrorUnions }};{{ else }} catch |err| {
                 if (conn.err) |_| {
                     {{- if $conf.UseContext }}
-                    try ctx.handle(.{ .pgerr = conn._err_data });
+                    try ctx.handle(.{ .pgerr = conn._err_data orelse unreachable });
                     return;
                     {{- else }}
                     return .{ .pgerr = try allocator.dupe(u8, conn._err_data orelse unreachable) };

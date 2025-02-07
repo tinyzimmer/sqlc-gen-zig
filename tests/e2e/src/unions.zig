@@ -9,7 +9,6 @@ const UserQuerier = UserQueries.PoolQuerier;
 const TestDB = @import("testdb.zig");
 
 test "unions - one field queries" {
-    const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectError = std.testing.expectError;
     const allocator = std.testing.allocator;
@@ -20,7 +19,7 @@ test "unions - one field queries" {
     const querier = UserQuerier.init(allocator, test_db.pool);
     try expectError(error.NotFound, querier.getUserIDByEmail("test@example.com"));
 
-    var result = try querier.createUser(.{
+    const result = try querier.createUser(.{
         .name = "test",
         .email = "test@example.com",
         .password = "password",
@@ -32,6 +31,27 @@ test "unions - one field queries" {
 
     const user_id_result = try querier.getUserIDByEmail("test@example.com");
     try expectEqual(1, user_id_result.id);
+}
+
+test "unions - unique constraints" {
+    const expect = std.testing.expect;
+    const expectEqual = std.testing.expectEqual;
+    const allocator = std.testing.allocator;
+
+    var test_db = try TestDB.init(allocator);
+    defer test_db.deinit();
+
+    const querier = UserQuerier.init(allocator, test_db.pool);
+
+    var result = try querier.createUser(.{
+        .name = "test",
+        .email = "test@example.com",
+        .password = "password",
+        .role = .admin,
+        .ip_address = "127.0.0.1",
+        .salary = 1000.50,
+    });
+    try expectEqual(.ok, result);
 
     // We should get a unique error
     result = try querier.createUser(.{
