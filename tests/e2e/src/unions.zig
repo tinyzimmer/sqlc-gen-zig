@@ -26,15 +26,20 @@ test "unions - one field queries" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    try expectEqual(.ok, result);
+    switch (result) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
 
     const user_id_result = try querier.getUserIDByEmail("test@example.com");
-    try expectEqual(1, user_id_result.id);
+    switch (user_id_result) {
+        .id => |id| try expectEqual(1, id),
+        .pgerr => return error.UnexpectedPGError,
+    }
 }
 
 test "unions - unique constraints" {
     const expect = std.testing.expect;
-    const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
     var test_db = try TestDB.init(allocator);
@@ -50,7 +55,10 @@ test "unions - unique constraints" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    try expectEqual(.ok, result);
+    switch (result) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
 
     // We should get a unique error
     result = try querier.createUser(.{
@@ -62,7 +70,7 @@ test "unions - unique constraints" {
         .salary = 1000.50,
     });
     switch (result) {
-        .ok => unreachable,
+        .ok => return error.ExpectedUniqueError,
         .pgerr => {
             const err = result.err() orelse unreachable;
             defer allocator.free(result.pgerr);
@@ -72,7 +80,6 @@ test "unions - unique constraints" {
 }
 
 test "unions - many field queries" {
-    // const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
@@ -91,7 +98,10 @@ test "unions - many field queries" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    try expectEqual(.ok, create);
+    switch (create) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
     create = try querier.createUser(.{
         .name = "user2",
         .email = "user2@example.com",
@@ -100,7 +110,10 @@ test "unions - many field queries" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    try expectEqual(.ok, create);
+    switch (create) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
     create = try querier.createUser(.{
         .name = "user3",
         .email = "user3@example.com",
@@ -109,15 +122,23 @@ test "unions - many field queries" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    try expectEqual(.ok, create);
+    switch (create) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
 
     const result = try querier.getUserIDsByRole(.admin);
-    defer {
-        if (result.id_list.len > 0) {
-            allocator.free(result.id_list);
-        }
+    switch (result) {
+        .id_list => |id_list| {
+            defer {
+                if (id_list.len > 0) {
+                    allocator.free(id_list);
+                }
+            }
+            try expectEqual(2, id_list.len);
+        },
+        .pgerr => return error.UnexpectedPGError,
     }
-    try expectEqual(2, result.id_list.len);
 }
 
 test "unions - one struct queries" {
@@ -144,22 +165,28 @@ test "unions - one struct queries" {
         .ip_address = "127.0.0.1",
         .salary = 1000.50,
     });
-    try expectEqual(.ok, create);
+    switch (create) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
 
     const result = try querier.getUser(1);
-    try expect(result.err() == null);
-    const user = result.user;
-    defer user.deinit();
+    switch (result) {
+        .user => |user| {
+            defer user.deinit();
 
-    try expectEqual(1, user.id);
-    try expect(user.created_at > 0);
-    try expect(user.updated_at > 0);
-    try expectEqualStrings("test", user.name);
-    try expectEqualStrings("test@example.com", user.email);
-    try expectEqualStrings("password", user.password);
-    try expectEqual(.admin, user.role);
-    try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
-    try expectEqual(1000.50, user.salary.?.toFloat());
+            try expectEqual(1, user.id);
+            try expect(user.created_at > 0);
+            try expect(user.updated_at > 0);
+            try expectEqualStrings("test", user.name);
+            try expectEqualStrings("test@example.com", user.email);
+            try expectEqualStrings("password", user.password);
+            try expectEqual(.admin, user.role);
+            try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
+            try expectEqual(1000.50, user.salary.?.toFloat());
+        },
+        .pgerr => return error.UnexpectedPGError,
+    }
 }
 
 test "unions - many struct queries" {
@@ -176,8 +203,10 @@ test "unions - many struct queries" {
     const querier = UserQuerier.init(allocator, test_db.pool);
 
     const empty_users = try querier.getUsers();
-    try expect(empty_users.err() == null);
-    try expectEqual(0, empty_users.user_list.len);
+    switch (empty_users) {
+        .user_list => |user_list| try expectEqual(0, user_list.len),
+        .pgerr => return error.UnexpectedPGError,
+    }
 
     var create = try querier.createUser(.{
         .name = "user1",
@@ -186,7 +215,10 @@ test "unions - many struct queries" {
         .role = .admin,
         .ip_address = "127.0.0.1",
     });
-    try expectEqual(.ok, create);
+    switch (create) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
 
     create = try querier.createUser(.{
         .name = "user2",
@@ -195,36 +227,39 @@ test "unions - many struct queries" {
         .role = .user,
         .ip_address = "127.0.0.1",
     });
-    try expectEqual(.ok, create);
+    switch (create) {
+        .ok => {},
+        .pgerr => return error.UnexpectedPGError,
+    }
 
     const users = try querier.getUsers();
-    defer {
-        switch (users) {
-            .user_list => |list| {
-                for (list) |user| {
+    switch (users) {
+        .user_list => |user_list| {
+            defer {
+                for (user_list) |user| {
                     user.deinit();
                 }
-                allocator.free(list);
-            },
-            .pgerr => unreachable,
-        }
-    }
-    try expectEqual(2, users.user_list.len);
-    for (1..2) |idx| {
-        const user = users.user_list[idx - 1];
-        try expectEqual(@as(i32, @intCast(idx)), user.id);
-        try expect(user.created_at > 0);
-        try expect(user.updated_at > 0);
+                allocator.free(user_list);
+            }
+            try expectEqual(2, user_list.len);
+            for (1..2) |idx| {
+                const user = user_list[idx - 1];
+                try expectEqual(@as(i32, @intCast(idx)), user.id);
+                try expect(user.created_at > 0);
+                try expect(user.updated_at > 0);
 
-        var namebuf: [6]u8 = undefined;
-        var emailbuf: [18]u8 = undefined;
-        const name = try std.fmt.bufPrint(&namebuf, "user{d}", .{idx});
-        const email = try std.fmt.bufPrint(&emailbuf, "user{d}@example.com", .{idx});
+                var namebuf: [6]u8 = undefined;
+                var emailbuf: [18]u8 = undefined;
+                const name = try std.fmt.bufPrint(&namebuf, "user{d}", .{idx});
+                const email = try std.fmt.bufPrint(&emailbuf, "user{d}@example.com", .{idx});
 
-        try expectEqualStrings(name, user.name);
-        try expectEqualStrings(email, user.email);
-        try expectEqualStrings("password", user.password);
-        try expectEqual(.admin, user.role);
-        try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
+                try expectEqualStrings(name, user.name);
+                try expectEqualStrings(email, user.email);
+                try expectEqualStrings("password", user.password);
+                try expectEqual(.admin, user.role);
+                try expectEqualSlices(u8, &.{ 127, 0, 0, 1 }, user.ip_address.?.address);
+            }
+        },
+        .pgerr => return error.UnexpectedPGError,
     }
 }

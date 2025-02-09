@@ -14,7 +14,7 @@ const MustCreateUserContext = struct {
     pub fn handle(_: *Self, result: UserQuerier.CreateUserResult) anyerror!void {
         switch (result) {
             .ok => {},
-            .pgerr => unreachable,
+            .pgerr => return error.UnexpectedPGError,
         }
     }
 };
@@ -25,7 +25,7 @@ const MustCreateOrderContext = struct {
     pub fn handle(_: *Self, result: OrderQuerier.CreateOrderResult) anyerror!void {
         switch (result) {
             .ok => {},
-            .pgerr => unreachable,
+            .pgerr => return error.UnexpectedPGError,
         }
     }
 };
@@ -45,7 +45,10 @@ test "contextunions - one field queries" {
 
         pub fn handle(ctx: *Self, result: UserQuerier.GetUserIDByEmailResult) anyerror!void {
             ctx.call_count += 1;
-            ctx.called_with = result.id;
+            switch (result) {
+                .id => |id| ctx.called_with = id,
+                .pgerr => return error.UnexpectedPGError,
+            }
         }
     };
 
@@ -85,12 +88,12 @@ test "contextunions - unique constraints" {
             switch (result) {
                 .ok => {
                     if (self.expect_err) {
-                        unreachable;
+                        return error.ExpectedUniqueError;
                     }
                 },
                 .pgerr => {
                     if (!self.expect_err) {
-                        unreachable;
+                        return error.UnexpectedPGError;
                     }
                     const err = result.err() orelse unreachable;
                     try expect(err.isUnique());
@@ -134,7 +137,10 @@ test "contextunions - many field queries" {
 
         pub fn handle(ctx: *Self, result: UserQuerier.GetUserIDByEmailResult) anyerror!void {
             ctx.call_count += 1;
-            ctx.called_with[ctx.call_count - 1] = result.id;
+            switch (result) {
+                .id => |id| ctx.called_with[ctx.call_count - 1] = id,
+                .pgerr => return error.UnexpectedPGError,
+            }
         }
     };
 
@@ -199,7 +205,12 @@ test "contextunions - one struct queries" {
         pub fn handle(ctx: *Self, result: UserQuerier.GetUserResult) anyerror!void {
             ctx.call_count += 1;
             if (ctx.expect) {
-                const user = result.user;
+                const user = try blk: {
+                    switch (result) {
+                        .user => break :blk result.user,
+                        .pgerr => break :blk error.UnexpectedPGError,
+                    }
+                };
                 try expectEqual(1, user.id);
                 try expect(user.created_at > 0);
                 try expect(user.updated_at > 0);
@@ -251,7 +262,12 @@ test "contextunions - many struct queries" {
         pub fn handle(ctx: *Self, result: UserQuerier.GetUsersResult) anyerror!void {
             ctx.call_count += 1;
             if (ctx.expect) {
-                const user = result.user;
+                const user = try blk: {
+                    switch (result) {
+                        .user => break :blk result.user,
+                        .pgerr => break :blk error.UnexpectedPGError,
+                    }
+                };
                 try expectEqual(@as(i32, @intCast(ctx.call_count)), user.id);
                 try expect(user.created_at > 0);
                 try expect(user.updated_at > 0);
@@ -321,7 +337,12 @@ test "contextunions - partial struct returns" {
         pub fn handle(ctx: *Self, result: UserQuerier.GetUserEmailsResult) anyerror!void {
             ctx.call_count += 1;
             if (ctx.expect) {
-                const user = result.get_user_emails_row;
+                const user = try blk: {
+                    switch (result) {
+                        .get_user_emails_row => break :blk result.get_user_emails_row,
+                        .pgerr => break :blk error.UnexpectedPGError,
+                    }
+                };
                 var emailbuf: [18]u8 = undefined;
                 const email = try std.fmt.bufPrint(&emailbuf, "user{d}@example.com", .{ctx.call_count});
 
@@ -378,7 +399,12 @@ test "contextunions - array types" {
         pub fn handle(ctx: *Self, result: OrderQuerier.GetOrdersResult) anyerror!void {
             ctx.call_count += 1;
             if (ctx.expect) {
-                const o = result.order;
+                const o = try blk: {
+                    switch (result) {
+                        .order => break :blk result.order,
+                        .pgerr => break :blk error.UnexpectedPGError,
+                    }
+                };
                 try expectEqual(1, o.id);
                 try expect(o.order_date > 0);
                 for (1..3) |expected| {
