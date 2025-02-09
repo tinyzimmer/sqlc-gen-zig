@@ -167,10 +167,10 @@ pub fn Querier(comptime T: type) type {
             {{- else }}
             {{- if isManyQuery $query }}
             {{- "\n" }}
-            {{- include "scanAndReturnManyQuery" (queryWithConfig $conf $query) | indent 12 }}
+            {{- include "scanManyQueryAlloc" (queryWithConfig $conf $query) | indent 12 }}
             {{- else if isOneQuery $query }}
             {{- "\n" }}
-            {{- include "scanAndReturnOneQuery" (queryWithConfig $conf $query) | indent 12 }}
+            {{- include "scanOneQueryAlloc" (queryWithConfig $conf $query) | indent 12 }}
             {{- end }}
             {{- end }}
         }
