@@ -25,3 +25,7 @@ patch-sqlc-yaml:
 		sed 's|{{PLUGIN_PATH}}|$(PLUGIN_FILE)|g' | \
 		sed 's|{{PLUGIN_SHA256}}|$(shell sha256sum $(PLUGIN_FILE) | cut -d ' ' -f 1)|g' \
 		> "$(SQLC_OUTPUT)"
+
+clean:
+	rm -rf bin/ dist/
+	rm -rf tests/e2e/sqlc.yaml tests/e2e/src/gen

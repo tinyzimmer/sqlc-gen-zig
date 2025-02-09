@@ -1,7 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const enums = @import("gen/unions/enums.zig");
 const OrderQueries = @import("gen/unions/orders.sql.zig");
 const OrderQuerier = OrderQueries.PoolQuerier;
 const UserQueries = @import("gen/unions/users.sql.zig");

@@ -52,7 +52,7 @@ func (q *Query) RequiresAllocations() bool {
 		return true
 	}
 	if q.Ret.Field != nil {
-		return q.Ret.Field.Array || isNonScalarBaseType(q.Ret.Field.ZigType)
+		return q.Ret.Field.Array || isNonScalarBaseType(*q.Ret.Field)
 	}
 	return hasNonScalarFields(*q.Ret.Struct)
 }
@@ -91,13 +91,15 @@ func buildQueries(conf Config, req *plugin.GenerateRequest, structs []Struct) ([
 		if len(query.GetParams()) <= conf.QueryParameterLimit {
 			// Inline the parameters
 			for _, param := range query.GetParams() {
+				zigType, isEnum := zigDataType(req, param.GetColumn())
 				gq.Args = append(gq.Args, QueryValue{
 					Name: paramName(param),
 					Field: &Field{
 						Name:     paramName(param),
 						Array:    param.GetColumn().IsArray,
 						Nullable: !param.GetColumn().NotNull,
-						ZigType:  zigDataType(req, param.GetColumn()),
+						ZigType:  zigType,
+						Enum:     isEnum,
 					},
 				})
 			}
@@ -115,13 +117,15 @@ func buildQueries(conf Config, req *plugin.GenerateRequest, structs []Struct) ([
 		if len(query.GetColumns()) > 0 {
 			if len(query.GetColumns()) == 1 {
 				col := query.GetColumns()[0]
+				zigType, isEnum := zigDataType(req, col)
 				gq.Ret = &QueryValue{
 					Name: columnName(col, 0),
 					Field: &Field{
 						Name:     columnName(col, 0),
 						Array:    col.IsArray,
 						Nullable: !col.NotNull,
-						ZigType:  zigDataType(req, query.GetColumns()[0]),
+						ZigType:  zigType,
+						Enum:     isEnum,
 					},
 				}
 			} else {
@@ -135,8 +139,9 @@ func buildQueries(conf Config, req *plugin.GenerateRequest, structs []Struct) ([
 
 					for i, f := range s.Fields {
 						c := query.GetColumns()[i]
+						zigType, _ := zigDataType(req, c)
 						sameName := f.Name == columnName(c, i)
-						sameType := f.ZigType == zigDataType(req, c)
+						sameType := f.ZigType == zigType
 						sameTable := sdk.SameTableName(c.Table, &plugin.Identifier{Name: s.ID.Name, Schema: s.ID.Schema}, req.Catalog.DefaultSchema)
 						if !sameName || !sameType || !sameTable {
 							same = false

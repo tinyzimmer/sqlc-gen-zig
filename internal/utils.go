@@ -17,18 +17,18 @@ func hasNonScalarFields(s Struct) bool {
 		if f.Array {
 			return true
 		}
-		if isNonScalarBaseType(f.ZigType) {
+		if isNonScalarBaseType(f) {
 			return true
 		}
 	}
 	return false
 }
 
-func isNonScalarBaseType(t string) bool {
-	if strings.HasPrefix(t, enumsTypePrefix) {
+func isNonScalarBaseType(f Field) bool {
+	if f.Enum {
 		return false
 	}
-	switch t {
+	switch f.ZigType {
 	case "bool", "i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "char", "void":
 		return false
 	default:

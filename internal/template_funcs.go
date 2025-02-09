@@ -65,7 +65,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 				}
 				return fmt.Sprintf("models.%s", q.Ret.Struct.StructName)
 			}
-			return fmt.Sprintf("%s", q.Ret.Field.ZigType)
+			return fmt.Sprintf("%s", q.Ret.Field.ZigID())
 		},
 		"errorUnionType": func(q Query) string {
 			return pascalCase(fmt.Sprintf("%sResult", q.MethodName))
@@ -108,7 +108,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 					case "pg.Cidr":
 						out.WriteString(fmt.Sprintf("%s: []const u8", name))
 					default:
-						out.WriteString(fmt.Sprintf("%s: %s", name, arg.Field.ZigType))
+						out.WriteString(fmt.Sprintf("%s: %s", name, arg.Field.ZigID()))
 					}
 				}
 			}
@@ -155,9 +155,9 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		},
 		"fieldScanType": func(f Field) string {
 			if f.Nullable {
-				return fmt.Sprintf("?%s", f.ZigType)
+				return fmt.Sprintf("?%s", f.ZigID())
 			}
-			return f.ZigType
+			return f.ZigID()
 		},
 		"isOneQuery": func(q Query) bool {
 			return q.Cmd == metadata.CmdOne
@@ -181,7 +181,7 @@ func templateFuncs(t *template.Template) template.FuncMap {
 		"hasEnums": func(models []Struct) bool {
 			for _, model := range models {
 				for _, field := range model.Fields {
-					if strings.HasPrefix(field.ZigType, enumsTypePrefix) {
+					if field.Enum {
 						return true
 					}
 				}
@@ -192,23 +192,20 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			for _, arg := range query.Args {
 				if arg.Struct != nil {
 					for _, field := range arg.Struct.Fields {
-						if strings.HasPrefix(field.ZigType, enumsTypePrefix) && field.Array {
+						if field.Enum && field.Array {
 							return true
 						}
 					}
 				} else {
-					if strings.HasPrefix(arg.Field.ZigType, enumsTypePrefix) && arg.Field.Array {
+					if arg.Field.Enum && arg.Field.Array {
 						return true
 					}
 				}
 			}
 			return false
 		},
-		"isEnum": func(field Field) bool {
-			return strings.HasPrefix(field.ZigType, enumsTypePrefix)
-		},
 		"isNonScalar": func(field Field) bool {
-			return isNonScalarBaseType(field.ZigType)
+			return isNonScalarBaseType(field)
 		},
 		"allocType": func(field Field) string {
 			baseType := strings.TrimPrefix(field.ZigType, "[]")

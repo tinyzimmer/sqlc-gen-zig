@@ -5,10 +5,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const pg = @import("{{ .PGImportName }}");
-{{ if hasEnums .Models }}
-const enums = @import("{{ .EnumsFile }}");
-{{- end }}
-{{- if .Models }}
+{{- if or .Models .Enums }}
 const models = @import("{{ .ModelsFile }}");
 {{- end }}
 
@@ -41,7 +38,7 @@ pub fn Querier(comptime T: type) type {
         {{- if $arg.Struct }}
         pub const {{ $arg.Struct.StructName }} = struct {
             {{- range $field := $arg.Struct.Fields }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ if and (isEnum $field) $field.Array }}const {{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ if and $field.Enum $field.Array }}const {{ end }}{{ $field.ZigID }}{{ if $field.Nullable }} = null{{ end }},
             {{- end }}
         };
         {{- "\n" -}}
@@ -58,9 +55,9 @@ pub fn Querier(comptime T: type) type {
             {{- end }}
             {{- range $field := $query.Ret.Struct.Fields }}
             {{- if $conf.UseContext }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}*pg.Iterator({{ end }}{{ if and (isEnum $field) $field.Array }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }}{{ if $field.Array }}){{ end }},
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}*pg.Iterator({{ end }}{{ if and $field.Enum $field.Array }}[]const u8{{ else }}{{ $field.ZigID }}{{ end }}{{ if $field.Array }}){{ end }},
             {{- else }}
-            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ if and (isEnum $field) $field.Array }}const {{ end }}{{ $field.ZigType }}{{ if $field.Nullable }} = null{{ end }},
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ if and $field.Enum $field.Array }}const {{ end }}{{ $field.ZigID }}{{ if $field.Nullable }} = null{{ end }},
             {{- end }}
             {{- end }}
 

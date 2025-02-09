@@ -1,7 +1,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const enums = @import("gen/managed/enums.zig");
+const models = @import("gen/managed/models.zig");
 const OrderQueries = @import("gen/managed/orders.sql.zig");
 const OrderQuerier = OrderQueries.PoolQuerier;
 const UserQueries = @import("gen/managed/users.sql.zig");
@@ -305,7 +305,7 @@ test "managed - array types" {
     const item_quantities: []const f64 = &.{ 1.5, 2.5, 3.5 };
     const shipping_addresses: []const []const u8 = &.{ "address1", "address2", "address3" };
     const ip_addresses: []const []const u8 = &.{ "192.168.1.1", "172.16.0.1", "10.0.0.1" };
-    const products = &[_]enums.Product{ .laptop, .desktop };
+    const products = &[_]models.Product{ .laptop, .desktop };
 
     try querier.createOrder(.{
         .order_date = std.time.milliTimestamp(),

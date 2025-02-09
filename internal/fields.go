@@ -13,6 +13,14 @@ type Field struct {
 	Nullable bool
 	Array    bool
 	Index    int
+	Enum     bool
+}
+
+func (f Field) ZigID() string {
+	if f.Enum {
+		return "models." + f.ZigType
+	}
+	return f.ZigType
 }
 
 func buildFields(_ Config, req *plugin.GenerateRequest, columns []*plugin.Column) []Field {
@@ -22,27 +30,29 @@ func buildFields(_ Config, req *plugin.GenerateRequest, columns []*plugin.Column
 		if name == "" {
 			name = fmt.Sprintf("column_%d", idx)
 		}
+		zigType, isEnum := zigDataType(req, column)
 		fields = append(fields, Field{
 			Name:     name,
 			Comment:  column.GetComment(),
-			ZigType:  zigDataType(req, column),
+			ZigType:  zigType,
 			Nullable: !column.GetNotNull(),
 			Array:    column.GetIsArray(),
 			Index:    idx,
+			Enum:     isEnum,
 		})
 	}
 	return fields
 }
 
-func zigDataType(req *plugin.GenerateRequest, column *plugin.Column) string {
+func zigDataType(req *plugin.GenerateRequest, column *plugin.Column) (typeName string, isEnum bool) {
 	dbType := dbDataType(column.GetType())
 	switch req.GetSettings().GetEngine() {
 	case "postgresql":
 		if pgType := postgresqlType(dbType); pgType != "" {
-			return pgType
+			return pgType, false
 		}
 		if enumType := enumType(req.GetCatalog(), dbType); enumType != "" {
-			return enumType
+			return enumType, true
 		}
 		panic(fmt.Errorf("unsupported postgresql type: %s", dbType))
 	default:
