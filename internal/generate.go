@@ -11,7 +11,7 @@ import (
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
 
-//go:embed templates/*.gotmpl
+//go:embed templates/**/*.gotmpl
 var templates embed.FS
 
 const modelsFilename = "models.zig"
@@ -67,7 +67,7 @@ func renderSourceFiles(conf Config, req *plugin.GenerateRequest, models []Struct
 func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct, enums []Enum) (*plugin.File, error) {
 	t := template.New("models.zig.gotmpl")
 	t, err := t.Funcs(templateFuncs(t)).
-		ParseFS(templates, "templates/helpers.gotmpl", "templates/models.zig.gotmpl")
+		ParseFS(templates, templatePaths(req, modelsTemplate)...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct, enu
 func renderQueries(conf Config, req *plugin.GenerateRequest, queries []Query, models []Struct, enums []Enum) ([]*plugin.File, error) {
 	t := template.New("queries.zig.gotmpl")
 	t, err := t.Funcs(templateFuncs(t)).
-		ParseFS(templates, "templates/helpers.gotmpl", "templates/queries.zig.gotmpl")
+		ParseFS(templates, templatePaths(req, queriesTemplate)...)
 	if err != nil {
 		return nil, err
 	}
@@ -129,4 +129,29 @@ func getConfig(req *plugin.GenerateRequest) (conf Config, err error) {
 		}
 	}
 	return conf, conf.Validate()
+}
+
+type zigTemplate string
+
+const (
+	modelsTemplate  zigTemplate = "models"
+	queriesTemplate zigTemplate = "queries"
+)
+
+func templatePaths(req *plugin.GenerateRequest, tmpl zigTemplate) []string {
+	engine := req.GetSettings().GetEngine()
+	switch tmpl {
+	case modelsTemplate:
+		return []string{
+			fmt.Sprintf("templates/%s/helpers.gotmpl", engine),
+			fmt.Sprintf("templates/%s/models.zig.gotmpl", engine),
+		}
+	case queriesTemplate:
+		return []string{
+			fmt.Sprintf("templates/%s/helpers.gotmpl", engine),
+			fmt.Sprintf("templates/%s/queries.zig.gotmpl", engine),
+		}
+	default:
+		panic("Unknown template")
+	}
 }
