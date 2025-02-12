@@ -4,7 +4,7 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
-const pg = @import("{{ .PGImportName }}");
+const pg = @import("{{ .DBImportName }}");
 {{- if or .Models .Enums }}
 const models = @import("{{ .ModelsFile }}");
 {{- end }}

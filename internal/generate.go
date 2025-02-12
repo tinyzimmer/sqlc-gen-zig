@@ -14,8 +14,6 @@ import (
 //go:embed templates/**/*.gotmpl
 var templates embed.FS
 
-const modelsFilename = "models.zig"
-
 func Generate(_ context.Context, req *plugin.GenerateRequest) (*plugin.GenerateResponse, error) {
 	if err := validateRequest(req); err != nil {
 		return nil, err
@@ -45,7 +43,7 @@ func Generate(_ context.Context, req *plugin.GenerateRequest) (*plugin.GenerateR
 
 func validateRequest(req *plugin.GenerateRequest) error {
 	switch req.GetSettings().GetEngine() {
-	case "postgresql":
+	case enginePostgres, engineSqlite:
 	default:
 		return fmt.Errorf("unsupported engine: %s", req.GetSettings().GetEngine())
 	}
@@ -64,6 +62,8 @@ func renderSourceFiles(conf Config, req *plugin.GenerateRequest, models []Struct
 	return append(queryFiles, modelsFile), nil
 }
 
+const modelsFilename = "models.zig"
+
 func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct, enums []Enum) (*plugin.File, error) {
 	t := template.New("models.zig.gotmpl")
 	t, err := t.Funcs(templateFuncs(t)).
@@ -75,7 +75,7 @@ func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct, enu
 	if err = t.Execute(&modelsFile, map[string]any{
 		"Config":       conf,
 		"SQLCVersion":  req.GetSqlcVersion(),
-		"PGImportName": conf.Backend.ImportName(),
+		"DBImportName": conf.Backend.ImportName(),
 		"Models":       models,
 		"Enums":        enums,
 	}); err != nil {
@@ -105,7 +105,7 @@ func renderQueries(conf Config, req *plugin.GenerateRequest, queries []Query, mo
 		if err = t.Execute(&queriesFile, map[string]any{
 			"Config":       conf,
 			"SQLCVersion":  req.GetSqlcVersion(),
-			"PGImportName": conf.Backend.ImportName(),
+			"DBImportName": conf.Backend.ImportName(),
 			"Queries":      queries,
 			"Models":       models,
 			"Enums":        enums,
@@ -122,13 +122,13 @@ func renderQueries(conf Config, req *plugin.GenerateRequest, queries []Query, mo
 }
 
 func getConfig(req *plugin.GenerateRequest) (conf Config, err error) {
-	conf.Default()
+	conf.Default(req)
 	if len(req.PluginOptions) > 0 {
 		if err := json.Unmarshal(req.PluginOptions, &conf); err != nil {
 			return conf, err
 		}
 	}
-	return conf, conf.Validate()
+	return conf, conf.Validate(req)
 }
 
 type zigTemplate string

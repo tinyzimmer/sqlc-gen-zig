@@ -9,22 +9,23 @@ PLUGIN_FILE := $(CURDIR)/bin/sqlc-gen-zig.wasm
 build:
 	GOOS=wasip1 GOARCH=wasm $(GO) build -o "$(PLUGIN_FILE)" .
 
-gen-e2e: build patch-sqlc-yaml
-	cd tests/e2e && $(SQLC) generate
+e2e: build e2e-postgres
 
-e2e: gen-e2e
-	cd tests/e2e && docker compose up -d
-	sleep 5
-	cd tests/e2e && $(ZIG) build test
-	cd tests/e2e && docker compose down -v
+e2e-postgres: build patch-sqlc-yaml-postgres gen-e2e-postgres run-e2e-postgres
 
-SQLC_TEMPLATE := $(CURDIR)/tests/e2e/sqlc.template.yaml
-SQLC_OUTPUT := $(CURDIR)/tests/e2e/sqlc.yaml
-patch-sqlc-yaml:
-	cat "$(SQLC_TEMPLATE)" | \
+gen-e2e-%:
+	cd tests/e2e/$* && $(SQLC) generate
+
+run-e2e-%:
+	cd tests/e2e/$* && [ -f "docker-compose.yaml" ] && docker compose up -d && sleep 5
+	cd tests/e2e/$* && $(ZIG) build test
+	cd tests/e2e/$* && [ -f "docker-compose.yaml" ] && docker compose down -v
+
+patch-sqlc-yaml-%:
+	cat "$(CURDIR)/tests/e2e/$*/sqlc.template.yaml" | \
 		sed 's|{{PLUGIN_PATH}}|$(PLUGIN_FILE)|g' | \
 		sed 's|{{PLUGIN_SHA256}}|$(shell sha256sum $(PLUGIN_FILE) | cut -d ' ' -f 1)|g' \
-		> "$(SQLC_OUTPUT)"
+		> "$(CURDIR)/tests/e2e/$*/sqlc.yaml"
 
 clean:
 	rm -rf bin/ dist/

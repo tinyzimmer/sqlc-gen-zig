@@ -55,6 +55,8 @@ func zigDataType(req *plugin.GenerateRequest, column *plugin.Column) (typeName s
 			return enumType, true
 		}
 		panic(fmt.Errorf("unsupported postgresql type: %s", dbType))
+	case "sqlite":
+		return sqliteType(dbType), false
 	default:
 		panic(fmt.Errorf("unsupported zig engine: %s", req.GetSettings().GetEngine()))
 	}
@@ -92,7 +94,7 @@ func postgresqlType(dbType string) string {
 	case "boolean", "bool", "pg_catalog.bool":
 		return "bool"
 	case "json", "jsonb":
-		return "std.json.Token"
+		return "[]const u8"
 	case "bytea", "blob", "pg_catalog.bytea":
 		return "[]u8"
 	case "date":
@@ -115,5 +117,33 @@ func postgresqlType(dbType string) string {
 		return "[]const u8"
 	default:
 		return ""
+	}
+}
+
+func sqliteType(dbType string) string {
+	switch dbType {
+	case "tinyint":
+		return "i64"
+	case "smallint", "int2":
+		return "i64"
+	case "mediumint":
+		return "i64"
+	case "int", "integer", "bigint", "int8":
+		return "i64"
+	case "unsigned big int":
+		return "u64"
+	case "real", "double", "double precision", "float", "numeric", "decimal":
+		return "f64"
+	case "text", "character", "varchar", "varying character", "nchar", "native character", "nvarchar", "clob":
+		return "[]const u8"
+	case "blob":
+		return "zqlite.Blob"
+	case "boolean":
+		return "bool"
+	case "date", "datetime":
+		return "i64"
+	default:
+		// Assume it can be treated as a blob
+		return "zqlite.Blob"
 	}
 }

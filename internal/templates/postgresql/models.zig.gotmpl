@@ -5,7 +5,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 {{ if hasPgTypes .Models -}}
-const pg = @import("{{ .PGImportName }}");
+const pg = @import("{{ .DBImportName }}");
 {{ end }}
 
 {{- range $enum := .Enums }}
