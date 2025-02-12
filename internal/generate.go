@@ -65,9 +65,7 @@ func renderSourceFiles(conf Config, req *plugin.GenerateRequest, models []Struct
 const modelsFilename = "models.zig"
 
 func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct, enums []Enum) (*plugin.File, error) {
-	t := template.New("models.zig.gotmpl")
-	t, err := t.Funcs(templateFuncs(t)).
-		ParseFS(templates, templatePaths(req, modelsTemplate)...)
+	t, err := newTemplate(req, templateModels)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +86,7 @@ func renderModels(conf Config, req *plugin.GenerateRequest, models []Struct, enu
 }
 
 func renderQueries(conf Config, req *plugin.GenerateRequest, queries []Query, models []Struct, enums []Enum) ([]*plugin.File, error) {
-	t := template.New("queries.zig.gotmpl")
-	t, err := t.Funcs(templateFuncs(t)).
-		ParseFS(templates, templatePaths(req, queriesTemplate)...)
+	t, err := newTemplate(req, templateQueries)
 	if err != nil {
 		return nil, err
 	}
@@ -134,24 +130,24 @@ func getConfig(req *plugin.GenerateRequest) (conf Config, err error) {
 type zigTemplate string
 
 const (
-	modelsTemplate  zigTemplate = "models"
-	queriesTemplate zigTemplate = "queries"
+	templateModels  zigTemplate = "models"
+	templateQueries zigTemplate = "queries"
 )
+
+func newTemplate(req *plugin.GenerateRequest, tmpl zigTemplate) (*template.Template, error) {
+	t := template.New(fmt.Sprintf("%s.zig.gotmpl", tmpl))
+	t, err := t.Funcs(commonTemplateFuncs(t)).Funcs(engineTemplateFuncs(t, req)).
+		ParseFS(templates, templatePaths(req, tmpl)...)
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
+}
 
 func templatePaths(req *plugin.GenerateRequest, tmpl zigTemplate) []string {
 	engine := req.GetSettings().GetEngine()
-	switch tmpl {
-	case modelsTemplate:
-		return []string{
-			fmt.Sprintf("templates/%s/helpers.gotmpl", engine),
-			fmt.Sprintf("templates/%s/models.zig.gotmpl", engine),
-		}
-	case queriesTemplate:
-		return []string{
-			fmt.Sprintf("templates/%s/helpers.gotmpl", engine),
-			fmt.Sprintf("templates/%s/queries.zig.gotmpl", engine),
-		}
-	default:
-		panic("Unknown template")
+	return []string{
+		fmt.Sprintf("templates/%s/helpers.gotmpl", engine),
+		fmt.Sprintf("templates/%s/%s.zig.gotmpl", engine, tmpl),
 	}
 }

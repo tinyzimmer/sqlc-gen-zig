@@ -7,9 +7,21 @@ import (
 	"text/template"
 
 	"github.com/sqlc-dev/plugin-sdk-go/metadata"
+	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
 
-func templateFuncs(t *template.Template) template.FuncMap {
+func engineTemplateFuncs(t *template.Template, req *plugin.GenerateRequest) template.FuncMap {
+	switch req.GetSettings().GetEngine() {
+	case enginePostgres:
+		return postgresqlTemplateFuncs(t)
+	case engineSqlite:
+		return sqliteTemplateFuncs(t)
+	default:
+		return template.FuncMap{}
+	}
+}
+
+func commonTemplateFuncs(t *template.Template) template.FuncMap {
 	return template.FuncMap{
 		"include": func(name string, data interface{}) (string, error) {
 			buf := bytes.NewBuffer(nil)
@@ -225,4 +237,12 @@ func templateFuncs(t *template.Template) template.FuncMap {
 			}
 		},
 	}
+}
+
+func postgresqlTemplateFuncs(t *template.Template) template.FuncMap {
+	return template.FuncMap{}
+}
+
+func sqliteTemplateFuncs(t *template.Template) template.FuncMap {
+	return template.FuncMap{}
 }
