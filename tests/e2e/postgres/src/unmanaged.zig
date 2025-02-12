@@ -8,7 +8,7 @@ const UserQueries = @import("gen/unmanaged/users.sql.zig");
 const UserQuerier = UserQueries.PoolQuerier;
 const TestDB = @import("testdb.zig");
 
-test "unmanaged - one field queries" {
+test "postgres(unmanaged): one field queries" {
     const expectEqual = std.testing.expectEqual;
     const expectError = std.testing.expectError;
     const allocator = std.testing.allocator;
@@ -32,7 +32,7 @@ test "unmanaged - one field queries" {
     try expectEqual(1, user_id);
 }
 
-test "unmanaged - many field queries" {
+test "postgres(unmanaged): many field queries" {
     const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
@@ -77,7 +77,7 @@ test "unmanaged - many field queries" {
     try expectEqual(2, user_ids.len);
 }
 
-test "unmanaged - one struct queries" {
+test "postgres(unmanaged): one struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -116,7 +116,7 @@ test "unmanaged - one struct queries" {
     try expectEqual(1000.50, user.salary.?.toFloat());
 }
 
-test "unmanaged - many struct queries" {
+test "postgres(unmanaged): many struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -177,7 +177,7 @@ test "unmanaged - many struct queries" {
     }
 }
 
-test "unmanaged - special type queries" {
+test "postgres(unmanaged): special type queries" {
     const expectEqual = std.testing.expectEqual;
 
     const allocator = std.testing.allocator;
@@ -233,7 +233,7 @@ test "unmanaged - special type queries" {
     try expectEqual(2, ip_users.len);
 }
 
-test "unmanaged - partial struct returns" {
+test "postgres(unmanaged): partial struct returns" {
     const expectEqual = std.testing.expectEqual;
     const expectEqualStrings = std.testing.expectEqualStrings;
 
@@ -286,7 +286,7 @@ test "unmanaged - partial struct returns" {
     }
 }
 
-test "unmanaged - array types" {
+test "postgres(unmanaged): array types" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualStrings = std.testing.expectEqualStrings;

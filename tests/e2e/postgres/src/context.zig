@@ -8,7 +8,7 @@ const UserQueries = @import("gen/context/users.sql.zig");
 const UserQuerier = UserQueries.PoolQuerier;
 const TestDB = @import("testdb.zig");
 
-test "context - one field queries" {
+test "postgres(context): one field queries" {
     const expectEqual = std.testing.expectEqual;
     const expectError = std.testing.expectError;
     const allocator = std.testing.allocator;
@@ -47,7 +47,7 @@ test "context - one field queries" {
     try expectEqual(1, ctx.called_with);
 }
 
-test "context - many field queries" {
+test "postgres(context): many field queries" {
     const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
@@ -103,7 +103,7 @@ test "context - many field queries" {
     try expectEqual(2, ctx.called_with[1]);
 }
 
-test "context - one struct queries" {
+test "postgres(context): one struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -154,7 +154,7 @@ test "context - one struct queries" {
     try querier.getUser(&ctx, 1);
 }
 
-test "context - many struct queries" {
+test "postgres(context): many struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -224,7 +224,7 @@ test "context - many struct queries" {
     try expectEqual(2, ctx.call_count);
 }
 
-test "context - partial struct returns" {
+test "postgres(context): partial struct returns" {
     const expectEqual = std.testing.expectEqual;
     const expectEqualStrings = std.testing.expectEqualStrings;
 
@@ -279,7 +279,7 @@ test "context - partial struct returns" {
     try expectEqual(2, ctx.call_count);
 }
 
-test "context - array types" {
+test "postgres(context) - array types" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
 

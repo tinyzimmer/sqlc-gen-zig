@@ -30,7 +30,7 @@ const MustCreateOrderContext = struct {
     }
 };
 
-test "contextunions - one field queries" {
+test "postgres(contextunions): one field queries" {
     const expectEqual = std.testing.expectEqual;
     const expectError = std.testing.expectError;
     const allocator = std.testing.allocator;
@@ -73,7 +73,7 @@ test "contextunions - one field queries" {
     try expectEqual(1, ctx.called_with);
 }
 
-test "contextunions - unique constraints" {
+test "postgres(contextunions): unique constraints" {
     const expect = std.testing.expect;
     const allocator = std.testing.allocator;
 
@@ -123,7 +123,7 @@ test "contextunions - unique constraints" {
     });
 }
 
-test "contextunions - many field queries" {
+test "postgres(contextunions): many field queries" {
     const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
@@ -183,7 +183,7 @@ test "contextunions - many field queries" {
     try expectEqual(2, ctx.called_with[1]);
 }
 
-test "contextunions - one struct queries" {
+test "postgres(contextunions): one struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -241,7 +241,7 @@ test "contextunions - one struct queries" {
     try querier.getUser(&ctx, 1);
 }
 
-test "contextunions - many struct queries" {
+test "postgres(contextunions): many struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -318,7 +318,7 @@ test "contextunions - many struct queries" {
     try expectEqual(2, ctx.call_count);
 }
 
-test "contextunions - partial struct returns" {
+test "postgres(contextunions): partial struct returns" {
     const expectEqual = std.testing.expectEqual;
     const expectEqualStrings = std.testing.expectEqualStrings;
 
@@ -380,7 +380,7 @@ test "contextunions - partial struct returns" {
     try expectEqual(2, ctx.call_count);
 }
 
-test "contextunions - array types" {
+test "postgres(contextunions): array types" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
 

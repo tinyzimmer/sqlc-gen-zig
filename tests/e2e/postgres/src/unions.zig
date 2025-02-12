@@ -7,7 +7,7 @@ const UserQueries = @import("gen/unions/users.sql.zig");
 const UserQuerier = UserQueries.PoolQuerier;
 const TestDB = @import("testdb.zig");
 
-test "unions - one field queries" {
+test "postgres(unions): one field queries" {
     const expectEqual = std.testing.expectEqual;
     const expectError = std.testing.expectError;
     const allocator = std.testing.allocator;
@@ -38,7 +38,7 @@ test "unions - one field queries" {
     }
 }
 
-test "unions - unique constraints" {
+test "postgres(unions): unique constraints" {
     const expect = std.testing.expect;
     const allocator = std.testing.allocator;
 
@@ -79,7 +79,7 @@ test "unions - unique constraints" {
     }
 }
 
-test "unions - many field queries" {
+test "postgres(unions): many field queries" {
     const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
@@ -141,7 +141,7 @@ test "unions - many field queries" {
     }
 }
 
-test "unions - one struct queries" {
+test "postgres(unions): one struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -189,7 +189,7 @@ test "unions - one struct queries" {
     }
 }
 
-test "unions - many struct queries" {
+test "postgres(unions): many struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;

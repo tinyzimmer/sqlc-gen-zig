@@ -8,7 +8,7 @@ const UserQueries = @import("gen/managed/users.sql.zig");
 const UserQuerier = UserQueries.PoolQuerier;
 const TestDB = @import("testdb.zig");
 
-test "managed - one field queries" {
+test "postgres(managed): one field queries" {
     const expectEqual = std.testing.expectEqual;
     const expectError = std.testing.expectError;
     const allocator = std.testing.allocator;
@@ -32,7 +32,7 @@ test "managed - one field queries" {
     try expectEqual(1, user_id);
 }
 
-test "managed - many field queries" {
+test "postgres(managed): many field queries" {
     const expectEqual = std.testing.expectEqual;
     const allocator = std.testing.allocator;
 
@@ -77,7 +77,7 @@ test "managed - many field queries" {
     try expectEqual(2, user_ids.len);
 }
 
-test "managed - one struct queries" {
+test "postgres(managed): one struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -116,7 +116,7 @@ test "managed - one struct queries" {
     try expectEqual(1000.50, user.salary.?.toFloat());
 }
 
-test "managed - many struct queries" {
+test "postgres(managed): many struct queries" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualSlices = std.testing.expectEqualSlices;
@@ -177,7 +177,7 @@ test "managed - many struct queries" {
     }
 }
 
-test "managed - special type queries" {
+test "postgres(managed): special type queries" {
     const expectEqual = std.testing.expectEqual;
 
     const allocator = std.testing.allocator;
@@ -233,7 +233,7 @@ test "managed - special type queries" {
     try expectEqual(2, ip_users.len);
 }
 
-test "managed - partial struct returns" {
+test "postgres(managed): partial struct returns" {
     const expectEqual = std.testing.expectEqual;
     const expectEqualStrings = std.testing.expectEqualStrings;
 
@@ -286,7 +286,7 @@ test "managed - partial struct returns" {
     }
 }
 
-test "managed - array types" {
+test "postgres(managed): array types" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
     const expectEqualStrings = std.testing.expectEqualStrings;
