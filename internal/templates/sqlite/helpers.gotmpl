@@ -67,11 +67,9 @@ const row_{{ .Name }}: ?{{ .ZigType }} = blk: {
     }
     break :blk null;
 };
-errdefer {
-    if (row_{{ .Name }}) |field| {
-        allocator.free(field);
-    }
-}
+errdefer if (row_{{ .Name }}) |field| {
+    allocator.free(field);
+};
 {{- else -}}
 const row_{{ .Name }} = try allocator.dupe({{ allocType . }}, row.{{ fieldScanner . }}({{ .Index }}));
 errdefer allocator.free(row_{{ .Name }});

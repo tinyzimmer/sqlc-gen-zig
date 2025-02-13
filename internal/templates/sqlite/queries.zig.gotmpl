@@ -94,11 +94,9 @@ pub fn Querier(comptime T: type) type {
                     break :blk self.conn;
                 }
             };
-            defer {
-                if (T == *zqlite.Pool) {
-                    self.conn.release(conn);
-                }
-            }
+            defer if (T == *zqlite.Pool) {
+                conn.release();
+            };
 
             {{ if not (isExecQuery $query) }}const rows = {{ end }}try {{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }});
             {{- if not (isExecQuery $query) }}
