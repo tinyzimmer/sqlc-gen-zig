@@ -123,7 +123,12 @@ func postgresqlType(dbType string) string {
 
 func sqliteType(dbType string) string {
 	spl := strings.Split(strings.ToLower(dbType), ".")
-	switch spl[len(spl)-1] {
+	baseType := spl[len(spl)-1]
+	// Hack to handle parameterized types
+	if strings.Contains(baseType, "(") {
+		baseType = strings.Split(baseType, "(")[0]
+	}
+	switch baseType {
 	case "tinyint":
 		return "i64"
 	case "smallint", "int2":

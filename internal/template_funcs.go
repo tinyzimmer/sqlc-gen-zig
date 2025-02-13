@@ -61,12 +61,6 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 			}
 			return out.String()
 		},
-		"callQueryFunc": func(q Query) string {
-			if q.Cmd == metadata.CmdExec {
-				return "conn.exec"
-			}
-			return "conn.query"
-		},
 		"queryReturnType": func(q Query) string {
 			if q.Ret == nil {
 				return "void"
@@ -119,6 +113,8 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 						out.WriteString(fmt.Sprintf("%s: f64", name))
 					case "pg.Cidr":
 						out.WriteString(fmt.Sprintf("%s: []const u8", name))
+					case "zqlite.Blob":
+						out.WriteString(fmt.Sprintf("%s: []const u8", name))
 					default:
 						out.WriteString(fmt.Sprintf("%s: %s", name, arg.Field.ZigID()))
 					}
@@ -165,12 +161,6 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 			out.WriteString("}")
 			return out.String()
 		},
-		"fieldScanType": func(f Field) string {
-			if f.Nullable {
-				return fmt.Sprintf("?%s", f.ZigID())
-			}
-			return f.ZigID()
-		},
 		"isOneQuery": func(q Query) bool {
 			return q.Cmd == metadata.CmdOne
 		},
@@ -180,7 +170,6 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 		"isExecQuery": func(q Query) bool {
 			return q.Cmd == metadata.CmdExec
 		},
-
 		"isNonScalar": func(field Field) bool {
 			return isNonScalarBaseType(field)
 		},
@@ -242,6 +231,18 @@ func postgresqlTemplateFuncs(_ *template.Template) template.FuncMap {
 			}
 			return false
 		},
+		"callQueryFunc": func(q Query) string {
+			if q.Cmd == metadata.CmdExec {
+				return "conn.exec"
+			}
+			return "conn.query"
+		},
+		"fieldScanType": func(f Field) string {
+			if f.Nullable {
+				return fmt.Sprintf("?%s", f.ZigID())
+			}
+			return f.ZigID()
+		},
 	}
 }
 
@@ -249,6 +250,41 @@ func sqliteTemplateFuncs(_ *template.Template) template.FuncMap {
 	return template.FuncMap{
 		"isBlob": func(f Field) bool {
 			return f.ZigType == "zqlite.Blob"
+		},
+		"callQueryFunc": func(q Query) string {
+			if q.Cmd == metadata.CmdExec {
+				return "conn.exec"
+			}
+			return "conn.rows"
+		},
+		"fieldScanner": func(f Field) string {
+			if f.Nullable {
+				switch f.ZigType {
+				case "i64":
+					return "nullableInt"
+				case "f64":
+					return "nullableFloat"
+				case "bool":
+					return "nullableBoolean"
+				case "[]const u8":
+					return "nullableText"
+				default:
+					return "nullableBlob"
+				}
+			} else {
+				switch f.ZigType {
+				case "i64":
+					return "int"
+				case "f64":
+					return "float"
+				case "bool":
+					return "boolean"
+				case "[]const u8":
+					return "text"
+				default:
+					return "blob"
+				}
+			}
 		},
 	}
 }

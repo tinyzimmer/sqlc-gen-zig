@@ -28,14 +28,11 @@ pub fn Querier(comptime T: type) type {
             {{ multilineStringLiteral $query.SQL 12 }}
         ;
         {{- "\n" -}}
-        {{- range $comment := $query.Comments }}
-        // {{ $comment }}
-        {{- end }}
         
         {{- /* Check if we are declaring a struct for the parameters of this query */}}
         {{- if hasLocalStructArg $query }}
         {{- range $arg := $query.Args }}
-        {{- if $arg.Struct }}
+        {{- if and $arg.Struct $arg.Emit }}
         pub const {{ $arg.Struct.StructName }} = struct {
             {{- range $field := $arg.Struct.Fields }}
             {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if $field.Array }}[]{{ end }}{{ if and $field.Enum $field.Array }}const {{ end }}{{ $field.ZigID }}{{ if $field.Nullable }} = null{{ end }},
@@ -109,6 +106,9 @@ pub fn Querier(comptime T: type) type {
         {{- "\n" -}}
         {{- end }}
 
+        {{- range $comment := $query.Comments }}
+        // {{ $comment }}
+        {{- end }}
         {{- if $conf.UseContext }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !void {
         {{- else }}

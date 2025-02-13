@@ -3,3 +3,127 @@
  
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+
+const zqlite = @import("{{ .DBImportName }}");
+{{- if .Models }}
+const models = @import("{{ .ModelsFile }}");
+{{- end }}
+
+pub const ConnQuerier = Querier(*zqlite.Conn);
+pub const PoolQuerier = Querier(*zqlite.Pool);
+
+pub fn Querier(comptime T: type) type {
+    return struct{
+        const Self = @This();
+        {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseContext) }}
+        allocator: Allocator,
+        {{- end }}
+        conn: T,
+
+        pub fn init({{ if and (not $conf.UnmanagedAllocations) (not $conf.UseContext) }}allocator: Allocator, {{ end }}conn: T) Self {
+            return .{ {{ if and (not $conf.UnmanagedAllocations) (not $conf.UseContext) }}.allocator = allocator, {{ end }}.conn = conn };
+        }
+        {{ range $query := .Queries }}
+        {{ if $conf.PublicQueryStings }}pub {{ end }}const {{ $query.ConstantName }} = 
+            {{ multilineStringLiteral $query.SQL 12 }}
+        ;
+        {{- "\n" -}}
+        
+        {{- /* Check if we are declaring a struct for the parameters of this query */}}
+        {{- if hasLocalStructArg $query }}
+        {{- range $arg := $query.Args }}
+        {{- if and $arg.Struct $arg.Emit }}
+        pub const {{ $arg.Struct.StructName }} = struct {
+            {{- range $field := $arg.Struct.Fields }}
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ $field.ZigID }}{{ if $field.Nullable }} = null{{ end }},
+            {{- end }}
+        };
+        {{- "\n" -}}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+
+        {{- /* Check if we are returning a custom struct from this query */}}
+        {{- if and (and $query.Ret $query.Ret.Struct) $query.Ret.Emit }}
+        pub const {{ $query.Ret.Struct.StructName }} = struct {
+            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseContext) }}
+            __allocator: Allocator,
+            {{- "\n" -}}
+            {{- end }}
+            {{- range $field := $query.Ret.Struct.Fields }}
+            {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ $field.ZigID }}{{ if $field.Nullable }} = null{{ end }},
+            {{- end }}
+
+            {{- if and (hasNonScalarFields $query.Ret.Struct) (not $conf.UseContext) }}
+            {{- "\n" }}
+            pub fn deinit(self: *const {{ $query.Ret.Struct.StructName }}) void {
+                {{- range $field := $query.Ret.Struct.Fields }}
+                {{- if isNonScalar $field }}
+                {{- if $field.Nullable }}
+                if (self.{{ $field.Name }}) |field| {
+                    self.__allocator.free(field);
+                }
+                {{- else }}
+                self.__allocator.free(self.{{ $field.Name }});
+                {{- end }}
+                {{- end }}
+                {{- end }}
+            }
+            {{- end }}
+        };
+        {{- "\n" -}}
+        {{- end }}
+
+        {{- range $comment := $query.Comments }}
+        // {{ $comment }}
+        {{- end }}
+        {{- if $conf.UseContext }}
+        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !void {
+        {{- else }}
+        pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
+        {{- end }}
+            {{- if $query.RequiresAllocations }}
+            {{- if or (and (not $conf.UnmanagedAllocations) (not $conf.UseContext)) (not $conf.UseContext) }}
+            const allocator = self.allocator;
+            {{- end }}
+            {{- end }}
+            var conn: *zqlite.Conn = blk: {
+                if (T == *zqlite.Pool) {
+                    break :blk try self.conn.acquire();
+                } else {
+                    break :blk self.conn;
+                }
+            };
+            defer {
+                if (T == *zqlite.Pool) {
+                    self.conn.release(conn);
+                }
+            }
+
+            {{ if not (isExecQuery $query) }}const rows = {{ end }}try {{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }});
+            {{- if not (isExecQuery $query) }}
+            defer rows.deinit();
+            {{- end }}
+
+            {{- if $conf.UseContext }}
+            {{- if isManyQuery $query }}
+            {{- "\n" }}
+            {{- include "scanManyQueryCallback" (queryWithConfig $conf $query) | indent 12 }}
+            {{- else if isOneQuery $query }}
+            {{- "\n" }}
+            {{- include "scanOneQueryCallback" (queryWithConfig $conf $query) | indent 12 }}
+            {{- end }}
+            {{- else }}
+            {{- if isManyQuery $query }}
+            {{- "\n" }}
+            {{- include "scanManyQueryAlloc" (queryWithConfig $conf $query) | indent 12 }}
+            {{- else if isOneQuery $query }}
+            {{- "\n" }}
+            {{- include "scanOneQueryAlloc" (queryWithConfig $conf $query) | indent 12 }}
+            {{- end }}
+            {{- end }}
+        }
+        {{- "\n" -}}
+        {{- end }}
+    };
+}

@@ -1,0 +1,40 @@
+{{/* Scans a single row Query object without allocations and invokes a callback */}}
+{{- define "scanOneQueryCallback" -}}
+{{- end -}}
+
+{{/* Scans a many row Query object without allocations and invokes a callback */}}
+{{- define "scanManyQueryCallback" -}}
+{{- end -}}
+
+{{/* Scans a single row Query object and returns the value */}}
+{{- define "scanOneQueryAlloc" -}}
+{{- end -}}
+
+{{/* Scans a many row Query object and returns the value as an owned slice */}}
+{{- define "scanManyQueryAlloc" -}}
+{{- end -}}
+
+{{/* Scans a single row in a Query */}}
+{{- define "scanRowAlloc" -}}
+{{- if .Ret.Struct }}
+{{- range $idx, $field := .Ret.Struct.Fields }}
+{{- include "scanValueAlloc" . -}}
+{{- end }}
+{{- else }}
+{{- include "scanValueAlloc" .Ret.Field -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Scans a single Field object from a query */}}
+{{- define "scanValueAlloc" -}}
+{{- if isNonScalar . }}
+{{ include "scanNonScalarAlloc" . }}
+{{- else }}
+{{ include "scanNoAlloc" . }}
+{{- end }}
+{{- end }}
+
+{{/* Scans a field object without duplicating the value */}}
+{{- define "scanNoAlloc" -}}
+const row_{{ .Name }} = row.{{ fieldScanner . }}({{ .Index }});
+{{- end -}}
