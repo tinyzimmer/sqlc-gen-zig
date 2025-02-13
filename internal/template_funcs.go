@@ -180,6 +180,32 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 		"isExecQuery": func(q Query) bool {
 			return q.Cmd == metadata.CmdExec
 		},
+
+		"isNonScalar": func(field Field) bool {
+			return isNonScalarBaseType(field)
+		},
+		"allocType": func(field Field) string {
+			baseType := strings.TrimPrefix(field.ZigType, "[]")
+			baseType = strings.TrimPrefix(baseType, "const ")
+			return baseType
+		},
+		"snakeCase": func(s string) string {
+			return snakeCase(s)
+		},
+		"pascalCase": func(s string) string {
+			return pascalCase(s)
+		},
+		"queryWithConfig": func(conf Config, q Query) map[string]any {
+			return map[string]any{
+				"Config": conf,
+				"Query":  q,
+			}
+		},
+	}
+}
+
+func postgresqlTemplateFuncs(_ *template.Template) template.FuncMap {
+	return template.FuncMap{
 		"hasPgTypes": func(models []Struct) bool {
 			for _, model := range models {
 				for _, field := range model.Fields {
@@ -216,33 +242,13 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 			}
 			return false
 		},
-		"isNonScalar": func(field Field) bool {
-			return isNonScalarBaseType(field)
-		},
-		"allocType": func(field Field) string {
-			baseType := strings.TrimPrefix(field.ZigType, "[]")
-			baseType = strings.TrimPrefix(baseType, "const ")
-			return baseType
-		},
-		"snakeCase": func(s string) string {
-			return snakeCase(s)
-		},
-		"pascalCase": func(s string) string {
-			return pascalCase(s)
-		},
-		"queryWithConfig": func(conf Config, q Query) map[string]any {
-			return map[string]any{
-				"Config": conf,
-				"Query":  q,
-			}
-		},
 	}
 }
 
-func postgresqlTemplateFuncs(t *template.Template) template.FuncMap {
-	return template.FuncMap{}
-}
-
-func sqliteTemplateFuncs(t *template.Template) template.FuncMap {
-	return template.FuncMap{}
+func sqliteTemplateFuncs(_ *template.Template) template.FuncMap {
+	return template.FuncMap{
+		"isBlob": func(f Field) bool {
+			return f.ZigType == "zqlite.Blob"
+		},
+	}
 }

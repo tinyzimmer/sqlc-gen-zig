@@ -3,3 +3,38 @@
  
 const std = @import("std");
 const Allocator = std.mem.Allocator;
+
+{{ range $model := .Models }}
+{{- if $model.Comment }}
+// {{ $model.Comment }}
+{{- end }}
+pub const {{ $model.StructName }} = struct {
+    {{- if and (hasNonScalarFields $model) (not $conf.UseContext) }}
+    __allocator: Allocator,
+    {{- "\n" -}}
+    {{- end }}
+    {{- range $field := $model.Fields }}
+    {{- if $field.Comment }}
+    // {{ $field.Comment }}
+    {{- end }}
+    {{ $field.Name }}: {{ if $field.Nullable }}?{{ end }}{{ if isBlob $field }}[]const u8{{ else }}{{ $field.ZigType }}{{ end }},
+    {{- end }}
+
+    {{- if and (hasNonScalarFields $model) (not $conf.UseContext) }}
+    {{- "\n" }}
+    pub fn deinit(self: *const {{ $model.StructName }}) void {
+        {{- range $field := $model.Fields }}      
+        {{- if isNonScalar $field }}
+        {{- if $field.Nullable }}
+        if (self.{{ $field.Name }}) |field| {
+            self.__allocator.free(field);
+        }
+        {{- else }}
+        self.__allocator.free(self.{{ $field.Name }});
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    }
+    {{- end }}
+};
+{{ end }}

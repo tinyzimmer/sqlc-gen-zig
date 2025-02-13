@@ -2,6 +2,7 @@ package zig
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/sqlc-dev/plugin-sdk-go/plugin"
 )
@@ -70,7 +71,7 @@ func dbDataType(id *plugin.Identifier) string {
 }
 
 func postgresqlType(dbType string) string {
-	switch dbType {
+	switch strings.ToLower(dbType) {
 	case "serial", "serial4", "pg_catalog.serial":
 		return "i32"
 	case "bigserial", "serial8", "pg_catalog.serial8":
@@ -121,7 +122,8 @@ func postgresqlType(dbType string) string {
 }
 
 func sqliteType(dbType string) string {
-	switch dbType {
+	spl := strings.Split(strings.ToLower(dbType), ".")
+	switch spl[len(spl)-1] {
 	case "tinyint":
 		return "i64"
 	case "smallint", "int2":
@@ -140,7 +142,7 @@ func sqliteType(dbType string) string {
 		return "zqlite.Blob"
 	case "boolean":
 		return "bool"
-	case "date", "datetime":
+	case "date", "datetime", "timestamp", "time":
 		return "i64"
 	default:
 		// Assume it can be treated as a blob
