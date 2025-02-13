@@ -8,6 +8,24 @@
 
 {{/* Scans a single row Query object and returns the value */}}
 {{- define "scanOneQueryAlloc" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
+const row = try rows.next() orelse return error.NotFound;
+{{- "\n" }}
+{{- include "scanRowAlloc" $query -}}
+{{- "\n" }}
+{{- if $query.Ret.Struct }}
+return .{
+    {{- if hasNonScalarFields $query.Ret.Struct }}
+    .__allocator = allocator,
+    {{- end }}
+    {{- range $idx, $field := $query.Ret.Struct.Fields }}
+    .{{ $field.Name }} = row_{{ $field.Name }},
+    {{- end }}
+};
+{{- else }}
+return row_{{ $query.Ret.Field.Name }};
+{{- end }}
 {{- end -}}
 
 {{/* Scans a many row Query object and returns the value as an owned slice */}}
