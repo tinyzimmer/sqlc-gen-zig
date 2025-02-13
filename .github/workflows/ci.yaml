@@ -16,8 +16,11 @@ env:
 
 jobs:
   e2e:
-    name: E2E Tests
+    name: E2E Tests - ${{ matrix.engine }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        engine: [postgres, sqlite]
 
     steps:
       - name: Checkout Code
@@ -36,7 +39,7 @@ jobs:
 
       - name: Run Tests
         shell: bash
-        run: make e2e
+        run: make e2e-${{ matrix.engine }}
 
   publish:
     name: Build and Publish

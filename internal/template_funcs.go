@@ -91,37 +91,6 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 			}
 			return val
 		},
-		"queryFuncArgs": func(conf Config, q Query) string {
-			var out strings.Builder
-			out.WriteString("self: Self")
-			if conf.UnmanagedAllocations && !conf.UseContext {
-				if q.RequiresAllocations() {
-					out.WriteString(", allocator: Allocator")
-				}
-			}
-			if conf.UseContext && (conf.PGErrorUnions || q.Cmd != metadata.CmdExec) {
-				out.WriteString(", ctx: anytype")
-			}
-			for i, name := range q.ArgNames() {
-				arg := q.Args[i]
-				out.WriteString(", ")
-				if arg.Struct != nil {
-					out.WriteString(fmt.Sprintf("%s: %s", name, arg.Struct.StructName))
-				} else {
-					switch arg.Field.ZigType {
-					case "pg.Numeric":
-						out.WriteString(fmt.Sprintf("%s: f64", name))
-					case "pg.Cidr":
-						out.WriteString(fmt.Sprintf("%s: []const u8", name))
-					case "zqlite.Blob":
-						out.WriteString(fmt.Sprintf("%s: []const u8", name))
-					default:
-						out.WriteString(fmt.Sprintf("%s: %s", name, arg.Field.ZigID()))
-					}
-				}
-			}
-			return out.String()
-		},
 		"hasLocalStructArg": func(q Query) bool {
 			for _, arg := range q.Args {
 				if arg.Struct != nil {
@@ -129,37 +98,6 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 				}
 			}
 			return false
-		},
-		"queryExecParams": func(q Query, indent int) string {
-			var out strings.Builder
-			out.WriteString(".{")
-			indentSpace := strings.Repeat(" ", indent)
-			endIndent := strings.Repeat(" ", indent-4)
-			for i, name := range q.ArgNames() {
-				arg := q.Args[i]
-				if i != 0 {
-					out.WriteString(indentSpace)
-				} else {
-					out.WriteString(" \n")
-					out.WriteString(indentSpace)
-				}
-				if arg.Struct != nil {
-					for i, field := range arg.Struct.Fields {
-						if i != 0 {
-							out.WriteString(fmt.Sprintf(",\n%s", strings.Repeat(" ", indent)))
-						}
-						out.WriteString(fmt.Sprintf("%s.%s", name, field.Name))
-					}
-				} else {
-					out.WriteString(name)
-				}
-				out.WriteString(",\n")
-				if i == len(q.Args)-1 {
-					out.WriteString(endIndent)
-				}
-			}
-			out.WriteString("}")
-			return out.String()
 		},
 		"isOneQuery": func(q Query) bool {
 			return q.Cmd == metadata.CmdOne
@@ -174,6 +112,9 @@ func commonTemplateFuncs(t *template.Template) template.FuncMap {
 			return isNonScalarBaseType(field)
 		},
 		"allocType": func(field Field) string {
+			if field.ZigType == "zqlite.Blob" {
+				return "u8"
+			}
 			baseType := strings.TrimPrefix(field.ZigType, "[]")
 			baseType = strings.TrimPrefix(baseType, "const ")
 			return baseType
@@ -243,6 +184,66 @@ func postgresqlTemplateFuncs(_ *template.Template) template.FuncMap {
 			}
 			return f.ZigID()
 		},
+		"queryFuncArgs": func(conf Config, q Query) string {
+			var out strings.Builder
+			out.WriteString("self: Self")
+			if conf.UnmanagedAllocations && !conf.UseContext {
+				if q.RequiresAllocations() {
+					out.WriteString(", allocator: Allocator")
+				}
+			}
+			if conf.UseContext && (conf.PGErrorUnions || q.Cmd != metadata.CmdExec) {
+				out.WriteString(", ctx: anytype")
+			}
+			for i, name := range q.ArgNames() {
+				arg := q.Args[i]
+				out.WriteString(", ")
+				if arg.Struct != nil {
+					out.WriteString(fmt.Sprintf("%s: %s", name, arg.Struct.StructName))
+				} else {
+					switch arg.Field.ZigType {
+					case "pg.Numeric":
+						out.WriteString(fmt.Sprintf("%s: f64", name))
+					case "pg.Cidr":
+						out.WriteString(fmt.Sprintf("%s: []const u8", name))
+					default:
+						out.WriteString(fmt.Sprintf("%s: %s", name, arg.Field.ZigID()))
+					}
+				}
+			}
+			return out.String()
+		},
+		"queryExecParams": func(q Query, indent int) string {
+			var out strings.Builder
+			out.WriteString(".{")
+			indentSpace := strings.Repeat(" ", indent)
+			endIndent := strings.Repeat(" ", indent-4)
+			for i, name := range q.ArgNames() {
+				arg := q.Args[i]
+				if i != 0 {
+					out.WriteString(indentSpace)
+				} else {
+					out.WriteString(" \n")
+					out.WriteString(indentSpace)
+				}
+				if arg.Struct != nil {
+					for i, field := range arg.Struct.Fields {
+						if i != 0 {
+							out.WriteString(fmt.Sprintf(",\n%s", strings.Repeat(" ", indent)))
+						}
+						out.WriteString(fmt.Sprintf("%s.%s", name, field.Name))
+					}
+				} else {
+					out.WriteString(name)
+				}
+				out.WriteString(",\n")
+				if i == len(q.Args)-1 {
+					out.WriteString(endIndent)
+				}
+			}
+			out.WriteString("}")
+			return out.String()
+		},
 	}
 }
 
@@ -285,6 +286,72 @@ func sqliteTemplateFuncs(_ *template.Template) template.FuncMap {
 					return "blob"
 				}
 			}
+		},
+		"queryFuncArgs": func(conf Config, q Query) string {
+			var out strings.Builder
+			out.WriteString("self: Self")
+			if conf.UnmanagedAllocations && !conf.UseContext {
+				if q.RequiresAllocations() {
+					out.WriteString(", allocator: Allocator")
+				}
+			}
+			if conf.UseContext && (conf.PGErrorUnions || q.Cmd != metadata.CmdExec) {
+				out.WriteString(", ctx: anytype")
+			}
+			for i, name := range q.ArgNames() {
+				arg := q.Args[i]
+				out.WriteString(", ")
+				if arg.Struct != nil {
+					out.WriteString(fmt.Sprintf("%s: %s", name, arg.Struct.StructName))
+				} else {
+					switch arg.Field.ZigType {
+					case "zqlite.Blob":
+						out.WriteString(fmt.Sprintf("%s: []const u8", name))
+					default:
+						out.WriteString(fmt.Sprintf("%s: %s", name, arg.Field.ZigID()))
+					}
+				}
+			}
+			return out.String()
+		},
+		"queryExecParams": func(q Query, indent int) string {
+			var out strings.Builder
+			out.WriteString(".{")
+			indentSpace := strings.Repeat(" ", indent)
+			endIndent := strings.Repeat(" ", indent-4)
+			for i, name := range q.ArgNames() {
+				arg := q.Args[i]
+				if i != 0 {
+					out.WriteString(indentSpace)
+				} else {
+					out.WriteString(" \n")
+					out.WriteString(indentSpace)
+				}
+				if arg.Struct != nil {
+					for i, field := range arg.Struct.Fields {
+						if i != 0 {
+							out.WriteString(fmt.Sprintf(",\n%s", strings.Repeat(" ", indent)))
+						}
+						if field.ZigType == "zqlite.Blob" {
+							out.WriteString(fmt.Sprintf("zqlite.blob(%s.%s)", name, field.Name))
+						} else {
+							out.WriteString(fmt.Sprintf("%s.%s", name, field.Name))
+						}
+					}
+				} else {
+					if arg.Field.ZigType == "zqlite.Blob" {
+						out.WriteString(fmt.Sprintf("zqlite.blob(%s)", name))
+					} else {
+						out.WriteString(name)
+					}
+				}
+				out.WriteString(",\n")
+				if i == len(q.Args)-1 {
+					out.WriteString(endIndent)
+				}
+			}
+			out.WriteString("}")
+			return out.String()
 		},
 	}
 }

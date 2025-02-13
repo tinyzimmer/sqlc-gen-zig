@@ -38,3 +38,24 @@
 {{- define "scanNoAlloc" -}}
 const row_{{ .Name }} = row.{{ fieldScanner . }}({{ .Index }});
 {{- end -}}
+
+{{/* Scans a non-scalar Field object */}}
+{{- define "scanNonScalarAlloc" -}}
+{{- if .Nullable }}
+const maybe_{{ .Name }} = row.{{ fieldScanner . }}({{ .Index }});
+const row_{{ .Name }}: ?{{ .ZigType }} = blk: {
+    if (maybe_{{ .Name }}) |field| {
+        break :blk try allocator.dupe({{ allocType . }}, field);
+    }
+    break :blk null;
+};
+errdefer {
+    if (row_{{ .Name }}) |field| {
+        allocator.free(field);
+    }
+}
+{{- else -}}
+const row_{{ .Name }} = try allocator.dupe({{ allocType . }}, row.{{ fieldScanner . }}({{ .Index }}));
+errdefer allocator.free(row_{{ .Name }});
+{{- end -}}
+{{- end -}}

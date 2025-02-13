@@ -137,8 +137,6 @@ func sqliteType(dbType string) string {
 		return "i64"
 	case "int", "integer", "bigint", "int8":
 		return "i64"
-	case "unsigned big int":
-		return "u64"
 	case "real", "double", "double precision", "float", "numeric", "decimal":
 		return "f64"
 	case "text", "character", "varchar", "varying character", "nchar", "native character", "nvarchar", "clob":
