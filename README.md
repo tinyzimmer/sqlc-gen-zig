@@ -49,12 +49,12 @@ unmanaged_allocations: false
 # Use context as parameters to generated methods. This is useful for code that
 # wants to execute queries with zero additional allocations. Context is a struct
 # with a `handle` method taking the return value of the query method. See the
-# e2e/src/context.zig tests for some examples for now.
+# tests/e2e/{engine}/src/context.zig tests for some examples for now.
 use_context: false
 # Set to true to return a union of pg.Error and the query result instead of
 # returning just the result. This is useful for code that wants to handle server
 # side errors in a more granular way (e.g. checking for constraint violations).
-# As with context for now, see the tests in e2e/src/unions.zig for examples.
+# See the tests in tests/e2e/postgres/src/unions.zig for examples for now.
 # This option is only applicable for the pg.zig backend.
 pg_error_unions: false
 ```
