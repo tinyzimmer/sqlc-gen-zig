@@ -1,9 +1,49 @@
 {{/* Scans a single row Query object without allocations and invokes a callback */}}
 {{- define "scanOneQueryCallback" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
+if (rows.err) |err| {
+    return err;
+}
+const row = rows.next() orelse return error.NotFound;
+{{- "\n" }}
+{{- if $query.Ret.Struct }}
+{{- range $idx, $field := $query.Ret.Struct.Fields }}
+{{ include "scanNoAlloc" . }}
+{{- end }}
+try ctx.handle(.{
+    {{- range $idx, $field := $query.Ret.Struct.Fields }}
+    .{{ $field.Name }} = row_{{ $field.Name }},
+    {{- end }}
+});
+{{- else }}
+{{ include "scanNoAlloc" $query.Ret.Field }}
+try ctx.handle(row_{{ $query.Ret.Field.Name }});
+{{- end }}
 {{- end -}}
 
 {{/* Scans a many row Query object without allocations and invokes a callback */}}
 {{- define "scanManyQueryCallback" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
+while (rows.next()) |row| {
+    {{- if $query.Ret.Struct }}
+    {{- range $idx, $field := $query.Ret.Struct.Fields }}
+    {{ include "scanNoAlloc" . }}
+    {{- end }}
+    try ctx.handle(.{
+        {{- range $idx, $field := $query.Ret.Struct.Fields }}
+        .{{ $field.Name }} = row_{{ $field.Name }},
+        {{- end }}
+    });
+    {{- else }}
+    {{ include "scanNoAlloc" $query.Ret.Field }}
+    try ctx.handle(row_{{ $query.Ret.Field.Name }});
+    {{- end }}
+}
+if (rows.err) |err| {
+    return err;
+}
 {{- end -}}
 
 {{/* Scans a single row Query object and returns the value */}}
@@ -51,6 +91,9 @@ while (rows.next()) |row| {
     {{- else }}
     try out.append(row_{{ $query.Ret.Field.Name }});
     {{- end }}
+}
+if (rows.err) |err| {
+    return err;
 }
 {{- "\n" }}
 return try out.toOwnedSlice();
