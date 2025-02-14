@@ -2,6 +2,8 @@
 
 A Zig code generator for [sqlc](https://sqlc.dev/).
 
+Currently only supports PostgreSQL and SQLite.
+
 ## Usage
 
 Head over to the [releases](https://github.com/tinyzimmer/sqlc-gen-zig/releases/latest) for instructions on how to configure your `sqlc.yaml`.
@@ -30,7 +32,8 @@ sql:
 Below are the available `options` with their default values:
 
 ```yaml
-# The Zig backend to use (currently only "pg.zig" is supported)
+# The Zig backend to use
+# Currently only "pg.zig" for postgresql and "zqlite.zig" for sqlite is supported
 backend: pg.zig
 # Set to true to not force struct names to their singular form
 emit_exact_table_names: false
@@ -52,6 +55,7 @@ use_context: false
 # returning just the result. This is useful for code that wants to handle server
 # side errors in a more granular way (e.g. checking for constraint violations).
 # As with context for now, see the tests in e2e/src/unions.zig for examples.
+# This option is only applicable for the pg.zig backend.
 pg_error_unions: false
 ```
 
