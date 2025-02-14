@@ -1,0 +1,15 @@
+.{
+    .name = "sqlc-gen-zig-sqlite-example",
+    .version = "0.0.0",
+    .dependencies = .{
+        .zqlite = .{
+            .url = "git+https://github.com/karlseguin/zqlite.zig?ref=master#61568e7d59ac7d05ce8e32c287b26bfbab0126a6",
+            .hash = "122003755f1656fff4295cbee88fbc70407650fa815187f621bedbdf6fd0a1da83e6",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

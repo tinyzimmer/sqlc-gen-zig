@@ -1,0 +1,14 @@
+version: '2'
+plugins:
+- name: zig
+  wasm:
+    url: https://github.com/tinyzimmer/sqlc-gen-zig/releases/download/v0.0.13/sqlc-gen-zig.wasm
+    sha256: 9afd6dea61c446fcfb217c1610132fb204595793a4a244bfaecdf1a96afb85f7
+sql:
+- schema: src/schema/schema.sql
+  queries: src/schema/queries.sql
+  engine: sqlite
+  codegen:
+  - out: src/models
+    plugin: zig
+    options: {}

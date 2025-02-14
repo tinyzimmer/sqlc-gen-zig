@@ -1,5 +1,5 @@
 .{
-    .name = "sqlc-gen-zig-e2e",
+    .name = "sqlc-gen-zig-postgres-example",
     .version = "0.0.0",
     .dependencies = .{
         .pg = .{

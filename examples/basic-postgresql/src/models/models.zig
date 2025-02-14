@@ -1,11 +1,15 @@
 // Generated with sqlc v1.28.0
-
+ 
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 const pg = @import("pg");
 
-const enums = @import("enums.zig");
+pub const UserRole = enum {
+    @"admin",
+    @"user",
+};
+
 
 pub const User = struct {
     __allocator: Allocator,
@@ -14,7 +18,7 @@ pub const User = struct {
     name: []const u8,
     email: []const u8,
     password: []const u8,
-    role: enums.UserRole,
+    role: UserRole,
     ip_address: ?pg.Cidr = null,
     salary: ?pg.Numeric = null,
     notes: ?[]const u8 = null,
