@@ -82,8 +82,8 @@ pub fn Querier(comptime T: type) type {
         {{- else }}
         pub fn {{ $query.MethodName }}({{ queryFuncArgs $conf $query }}) !{{ if isManyQuery $query }}[]{{ end }}{{ queryReturnType $query }} {
         {{- end }}
-            {{- if $query.RequiresAllocations }}
-            {{- if or (and (not $conf.UnmanagedAllocations) (not $conf.UseContext)) (not $conf.UseContext) }}
+            {{- if and $query.RequiresAllocations (not $conf.UnmanagedAllocations) }}
+            {{- if (not $conf.UseContext) }}
             const allocator = self.allocator;
             {{- end }}
             {{- end }}

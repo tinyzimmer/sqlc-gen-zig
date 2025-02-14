@@ -12,20 +12,11 @@ sql:
   - out: src/gen/managed
     plugin: zig
     options: {}
-  # - out: src/gen/unmanaged
-  #   plugin: zig
-  #   options:
-  #     unmanaged_allocations: true
-  # - out: src/gen/context
-  #   plugin: zig
-  #   options:
-  #     use_context: true
-  # - out: src/gen/unions
-  #   plugin: zig
-  #   options:
-  #     pg_error_unions: true
-  # - out: src/gen/contextunions
-  #   plugin: zig
-  #   options:
-  #     pg_error_unions: true
-  #     use_context: true
+  - out: src/gen/unmanaged
+    plugin: zig
+    options:
+      unmanaged_allocations: true
+  - out: src/gen/context
+    plugin: zig
+    options:
+      use_context: true
