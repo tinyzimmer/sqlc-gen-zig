@@ -124,11 +124,9 @@ pub fn Querier(comptime T: type) type {
                     break :blk self.conn;
                 }
             };
-            defer {
-                if (T == *pg.Pool) {
-                    self.conn.release(conn);
-                }
-            }
+            defer if (T == *pg.Pool) {
+                self.conn.release(conn);
+            };
             {{ if not (isExecQuery $query) }}const result{{ else }}_{{ end }} = {{ if not $conf.PGErrorUnions }}try {{ end }}{{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }}){{ if not $conf.PGErrorUnions }};{{ else }} catch |err| {
                 if (conn.err) |_| {
                     {{- if $conf.UseContext }}

@@ -15,6 +15,8 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     e2e_mod.addImport("zqlite", zqlite.module("zqlite"));
+    e2e_mod.link_libc = true;
+    e2e_mod.linkSystemLibrary("sqlite3", .{});
 
     const e2e_tests = b.addTest(.{
         .root_module = e2e_mod,

@@ -216,11 +216,9 @@ const row_{{ .Name }}: ?{{ .ZigType }} = blk: {
     }
     break :blk null;
 };
-errdefer {
-    if (row_{{ .Name }}) |field| {
-        allocator.free(field);
-    }
-}
+errdefer if (row_{{ .Name }}) |field| {
+    allocator.free(field);
+};
 {{- else -}}
 const row_{{ .Name }} = try allocator.dupe({{ allocType . }}, row.get({{ fieldScanType . }}, {{ .Index }}));
 errdefer allocator.free(row_{{ .Name }});
@@ -241,11 +239,9 @@ const row_{{ .Name }}: ?pg.Cidr = blk: {
     }
     break :blk null;
 };
-errdefer {
-    if (row_{{ .Name }}) |cidr| {
-        allocator.free(cidr.address);
-    }
-}
+errdefer if (row_{{ .Name }}) |cidr| {
+    allocator.free(cidr.address);
+};
 {{- else -}}
 const row_{{ .Name }} = pg.Cidr{
     .address = try allocator.dupe(u8, {{ .Name }}_cidr.address),
@@ -272,11 +268,9 @@ const row_{{ .Name }}: ?pg.Numeric = blk: {
     }
     break :blk null;
 };
-errdefer {
-    if (row_{{ .Name }}) |numeric| {
-        allocator.free(numeric.digits);
-    }
-}
+errdefer if (row_{{ .Name }}) |numeric| {
+    allocator.free(numeric.digits);
+};
 {{- else -}}
 const row_{{ .Name }} = pg.Numeric{
     .number_of_digits = {{ .Name }}_numeric.number_of_digits,

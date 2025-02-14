@@ -10,7 +10,10 @@
 {{- define "scanOneQueryAlloc" -}}
 {{- $query := .Query -}}
 {{- $conf := .Config -}}
-const row = try rows.next() orelse return error.NotFound;
+if (rows.err) |err| {
+    return err;
+}
+const row = rows.next() orelse return error.NotFound;
 {{- "\n" }}
 {{- include "scanRowAlloc" $query -}}
 {{- "\n" }}
@@ -30,6 +33,27 @@ return row_{{ $query.Ret.Field.Name }};
 
 {{/* Scans a many row Query object and returns the value as an owned slice */}}
 {{- define "scanManyQueryAlloc" -}}
+{{- $query := .Query -}}
+{{- $conf := .Config -}}
+var out = std.ArrayList({{ queryReturnType $query }}).init(allocator);
+defer out.deinit();
+while (rows.next()) |row| {
+    {{- include "scanRowAlloc" $query | indent 4 -}}
+    {{- if $query.Ret.Struct }}
+    try out.append(.{
+        {{- if hasNonScalarFields $query.Ret.Struct }}
+        .__allocator = allocator,
+        {{- end }}
+        {{- range $idx, $field := $query.Ret.Struct.Fields }}
+        .{{ $field.Name }} = row_{{ $field.Name }},
+        {{- end }}
+    });
+    {{- else }}
+    try out.append(row_{{ $query.Ret.Field.Name }});
+    {{- end }}
+}
+{{- "\n" }}
+return try out.toOwnedSlice();
 {{- end -}}
 
 {{/* Scans a single row in a Query */}}

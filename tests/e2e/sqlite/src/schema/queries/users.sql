@@ -24,9 +24,7 @@ INSERT INTO users (
     name, 
     email, 
     password, 
-    salary,
-    created_at,
-    updated_at
+    salary
 ) VALUES (
-    ?, ?, ?, ?, NOW(), NOW()
+    ?, ?, ?, ?
 );

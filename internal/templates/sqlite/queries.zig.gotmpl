@@ -9,7 +9,7 @@ const zqlite = @import("{{ .DBImportName }}");
 const models = @import("{{ .ModelsFile }}");
 {{- end }}
 
-pub const ConnQuerier = Querier(*zqlite.Conn);
+pub const ConnQuerier = Querier(zqlite.Conn);
 pub const PoolQuerier = Querier(*zqlite.Pool);
 
 pub fn Querier(comptime T: type) type {
@@ -87,9 +87,9 @@ pub fn Querier(comptime T: type) type {
             const allocator = self.allocator;
             {{- end }}
             {{- end }}
-            var conn: *zqlite.Conn = blk: {
+            var conn: zqlite.Conn = blk: {
                 if (T == *zqlite.Pool) {
-                    break :blk try self.conn.acquire();
+                    break :blk self.conn.acquire();
                 } else {
                     break :blk self.conn;
                 }
@@ -98,7 +98,7 @@ pub fn Querier(comptime T: type) type {
                 conn.release();
             };
 
-            {{ if not (isExecQuery $query) }}const rows = {{ end }}try {{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }});
+            {{ if not (isExecQuery $query) }}var rows = {{ end }}try {{ callQueryFunc $query }}({{ $query.ConstantName }}, {{ queryExecParams $query 16 }});
             {{- if not (isExecQuery $query) }}
             defer rows.deinit();
             {{- end }}
